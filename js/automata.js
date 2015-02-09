@@ -96,7 +96,7 @@ var automata = (function (automata) {
 
     automata.run = function () {
         automata.step();
-        runController = setInterval(automata.step, 1000);
+        runController = setInterval(automata.step, 1000 / 2);
     };
 
     automata.stop = function () {
