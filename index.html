@@ -1,1 +1,23 @@
-Hello World
+<!DOCTYPE HTML>
+<html>
+<head>
+        <script src='http://d3js.org/d3.v3.min.js' charset='utf-8'></script>
+        <script src='js/automata.js'></script>
+</head>
+
+<body>
+        <div>
+                <button onclick='automata.clear();'>Clear</button>
+                <button onclick='automata.step()'>Step</button>
+                <button onclick='automata.stop()'>Stop</button>
+                <button onclick='automata.run()'>Play</button>
+        </div>
+        <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                        automata.create();
+                        automata.draw();
+                });
+        </script>
+</body>
+</html>
+
