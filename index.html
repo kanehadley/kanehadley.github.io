@@ -3,6 +3,7 @@
 <head>
         <script src='vendor/d3.v3.min.js' charset='utf-8'></script>
         <script src='js/automata.js'></script>
+        <script src='js/examples.js'></script>
 </head>
 
 <body>
@@ -12,9 +13,15 @@
                 <button onclick='automata.stop()'>Stop</button>
                 <button onclick='automata.run()'>Play</button>
         </div>
+        <div id='automata-div'></div>
+                <button onclick='automata.initializeGlider();'>Initialize Glider</button>
+                <button onclick='automata.initializeOscillators();'>Initialize Oscillators</button>
+                <button onclick='automata.initializePulsars();'>Initialize Pulsar</button>
         <script>
+                
                 document.addEventListener('DOMContentLoaded', function () {
-                        automata.create();
+                        var div = d3.select('#automata-div')[0][0];
+                        automata.create(div, 40, 40);
                         automata.draw();
                 });
         </script>
