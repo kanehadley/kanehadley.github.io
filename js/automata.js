@@ -2,7 +2,7 @@ var automata = (function (automata) {
     'use strict';
 
     var width = 500,
-        height = 250,
+        height = 500,
         rows = 10,
         cols = 20,
         grid = null,
@@ -12,8 +12,9 @@ var automata = (function (automata) {
         worldWrap = true;
 
 
-    var iToXY = null,
-        xyToI = null;
+    var iToXY = automata.iToXY = null,
+        xyToI = automata.xyToI = null;
+    automata.xy = null;
 
 
     /** Clears all squares on the grid */
@@ -28,9 +29,17 @@ var automata = (function (automata) {
     };
 
 
-    /** Creates the root SVG element */
-    automata.create = function () {
-        root = d3.select('body').append('svg')
+    /**
+     * Creates the root SVG element.
+     *
+     * @param - HTMLElement - div - The div that the SVG will be attached to.
+     * @param - Integer - numColumns - The number of columns on the grid.
+     * @param - Integer - numRows - The number of rows on the grid.
+     */
+    automata.create = function (div, numColumns, numRows) {
+        cols = numColumns || 20;
+        rows = numRows || 10;
+        root = d3.select(div).append('svg')
             .attr('id', 'automata')
             .attr('width', width + 'px')
             .attr('height', height + 'px');
@@ -51,16 +60,25 @@ var automata = (function (automata) {
             grid[index] = parseInt(Math.random()*2);
         }
 
-        iToXY = function (i) {
+        automata.iToXY = iToXY = function (i) {
             return { x: i % numColumns, y: parseInt(i / numColumns) };
         };
 
-        xyToI = function (x, y) { return y * cols + x; };
+        automata.xyToI = xyToI = function (x, y) { return y * cols + x; };
+
+        automata.xy = function (x, y, value) {
+            if (value) {
+                grid[xyToI(x, y)] = value;
+                return this;
+            }
+            return grid[xyToI(x, y)];
+        };
 
         draw();
     }
 
 
+    /** Grab state value from x and y coordinate in the grid. */
     function queryGrid(x, y, dx, dy) {
         if (worldWrap) {
             /* Make the values positive for the modulus to work */
@@ -85,23 +103,27 @@ var automata = (function (automata) {
     function dr (x, y) { return queryGrid(x, y, 1, 1); }
 
 
+    /** One simulation step. Calculate effect of neighbors and update grid. */
     function step () {
         calculate();
-        automata.update();
+        update();
     }
 
 
+    /** Continuously run steps at regular intervals. */
     function run () {
         step();
-        runController = setInterval(step, 1000 / 2);
+        runController = setInterval(step, 1000 / 4);
     }
 
 
+    /** Stop the simulation. */
     function stop () {
         clearInterval(runController);
     }
 
 
+    /** Traverses the grid and calculate state changes from the neightbors. */
     function calculate () {
         var neighbors = 0;
 
@@ -129,6 +151,7 @@ var automata = (function (automata) {
     }
 
 
+    /** Render the SVG grid. */
     function draw () {
         var w = width / cols;
         var h = height / rows;
@@ -148,6 +171,7 @@ var automata = (function (automata) {
     }
 
 
+    /** Update the SVG rects based on the new grid state. */
     function update () {
         d3.select('#automata').selectAll('rect')
             .data(grid)
@@ -155,6 +179,17 @@ var automata = (function (automata) {
     }
 
 
+    automata.secretSave = function () {
+        var saved = [];
+
+        return grid.map(function (value, index) {
+            return {x:iToXY(index).x, y:iToXY(index).y, value:value};})
+            .filter(function (square) {return 1 === square.value;})
+            .map(function(square){return [square.x, square.y];});
+    };
+
+
+    /** Public functions. */
     automata.clear = clear;
     automata.run = run;
     automata.stop = stop;
