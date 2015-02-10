@@ -1,29 +1,34 @@
 var automata = (function (automata) {
     'use strict';
 
-    var width = 500;
-    var height = 250;
-    var rows = 10;
-    var cols = 20;
-    var grid = null;
-    var root;
-    var getXY;
-    var play = false;
-    var runController = null;
+    var width = 500,
+        height = 250,
+        rows = 10,
+        cols = 20,
+        grid = null,
+        root,
+        play = false,
+        runController = null,
+        worldWrap = true;
 
-    var xyToI = null;
 
-    automata.clear = function () {
-        grid.forEach(function (element, index, array) {
-            array[index] = 0;
-        });
-        automata.update();
-    };
+    var iToXY = null,
+        xyToI = null;
+
+
+    /** Clears all squares on the grid */
+    function clear () {
+        grid.forEach(function (element, index, array) { array[index] = 0; });
+        update();
+    }
+
 
     automata.g = function () {
         return grid;
     };
 
+
+    /** Creates the root SVG element */
     automata.create = function () {
         root = d3.select('body').append('svg')
             .attr('id', 'automata')
@@ -32,7 +37,13 @@ var automata = (function (automata) {
         setup(cols, rows);
     };
 
-    function setup ( numColumns, numRows ) {
+
+    /**
+     * Creates and initializes the grid with values.
+     * @param - Integer - numColumns - Number of columns in the grid.
+     * @param - Integer - numRows - Number of rows in the grid.
+     */
+    function setup (numColumns, numRows) {
         var len = numColumns * numRows;
         grid = new Array(len);
 
@@ -40,68 +51,56 @@ var automata = (function (automata) {
             grid[index] = parseInt(Math.random()*2);
         }
 
-        getXY = function (i) {
+        iToXY = function (i) {
             return { x: i % numColumns, y: parseInt(i / numColumns) };
         };
 
         xyToI = function (x, y) { return y * cols + x; };
 
-        automata.draw();
-    }
-
-    function u (x, y) {
-        if (0 === y) { return 0; }
-        return grid[xyToI(x, y - 1)];
-    }
-
-    function ul (x, y) {
-        if (0 === y) { return 0; }
-        if (0 === x) { return 0; }
-        return grid[xyToI(x - 1, y - 1)];
-    }
-
-    function ur (x, y) {
-        if (0 === y) { return 0; }
-        if (cols - 1 === x) { return 0; }
-        return grid[xyToI(x + 1, y - 1)];
-    }
-
-    function l (x, y) {
-        if (0 === x) { return 0; }
-        return grid[xyToI(x - 1, y)];
-    }
-
-    function r (x, y) {
-        if (cols - 1 === x) { return 0; }
-        return grid[xyToI(x + 1, y)];
-    }
-
-    function d (x, y) {
-        if (rows - 1 === y) { return 0; }
-        return grid[xyToI(x, y + 1)];
-    }
-
-    function dl (x, y) {
-        if (rows - 1 === y) { return 0; }
-        if (0 === x) { return 0; }
-        return grid[xyToI(x - 1, y + 1)];
-    }
-
-    function dr (x, y) {
-        if (rows - 1 === y) { return 0; }
-        if (cols - 1 === x) { return 0; }
-        return grid[xyToI(x + 1, y + 1)];
+        draw();
     }
 
 
-    automata.run = function () {
-        automata.step();
-        runController = setInterval(automata.step, 1000 / 2);
-    };
+    function queryGrid(x, y, dx, dy) {
+        if (worldWrap) {
+            /* Make the values positive for the modulus to work */
+            return grid[xyToI((x + dx + cols) % cols,
+                        (y + dy + rows) % rows)];
+        } else {
+            return (y + dy < 0 || y + dy > rows - 1 ||
+                    x + dx < 0 || x + dx > cols - 1) ?
+                    0 : grid[xyToI(x + dx, y + dy)];
+        }
+    }
 
-    automata.stop = function () {
+
+    /** Helper functions to query the neighbor values for the cell at x, y */
+    function u (x, y) { return queryGrid(x, y, 0, -1); }
+    function ul (x, y) { return queryGrid(x, y, -1, -1); }
+    function ur (x, y) { return queryGrid(x, y, 1, -1); }
+    function l (x, y) { return queryGrid(x, y, -1, 0); }
+    function r (x, y) { return queryGrid(x, y, 1, 0); }
+    function d (x, y) { return queryGrid(x, y, 0, 1); }
+    function dl (x, y) { return queryGrid(x, y, -1, 1); }
+    function dr (x, y) { return queryGrid(x, y, 1, 1); }
+
+
+    function step () {
+        calculate();
+        automata.update();
+    }
+
+
+    function run () {
+        step();
+        runController = setInterval(step, 1000 / 2);
+    }
+
+
+    function stop () {
         clearInterval(runController);
-    };
+    }
+
 
     function calculate () {
         var neighbors = 0;
@@ -110,8 +109,8 @@ var automata = (function (automata) {
 
         grid.forEach(function (element, index, array) {
             var x, y;
-            x = getXY(index).x;
-            y = getXY(index).y;
+            x = iToXY(index).x;
+            y = iToXY(index).y;
             neighbors = u(x, y) + ur(x, y) + r(x, y) + dr(x, y) + d(x, y) + dl(x, y) + l(x, y) + ul(x, y);
             if (1 === element) {
                 if (neighbors < 2) {
@@ -129,19 +128,15 @@ var automata = (function (automata) {
         grid = newGrid;
     }
 
-    automata.step = function () {
-        calculate();
-        automata.update();
-    };
 
-    automata.draw = function () {
+    function draw () {
         var w = width / cols;
         var h = height / rows;
         d3.select('#automata').selectAll('rect')
             .data(grid)
           .enter().append('rect')
-            .attr('x', function (d, i) { return getXY(i).x * w; })
-            .attr('y', function (d, i) { return getXY(i).y * h; })
+            .attr('x', function (d, i) { return iToXY(i).x * w; })
+            .attr('y', function (d, i) { return iToXY(i).y * h; })
             .attr('width', w)
             .attr('height', h)
             .style('fill', function (d) { return d ? 'red' : 'white'; })
@@ -150,13 +145,23 @@ var automata = (function (automata) {
                 grid[i] = grid[i] ? 0 : 1;
                 automata.update();
             });
-    };
+    }
 
-    automata.update = function () {
+
+    function update () {
         d3.select('#automata').selectAll('rect')
             .data(grid)
             .style('fill', function (d) { return d ? 'red' : 'white'; });
-    };
+    }
+
+
+    automata.clear = clear;
+    automata.run = run;
+    automata.stop = stop;
+    automata.step = step;
+    automata.draw = draw;
+    automata.update = update;
 
     return automata;
+
 }) (automata || {});
