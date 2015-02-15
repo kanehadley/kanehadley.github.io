@@ -1,0 +1,28 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+        <script src='vendor/d3.v3.min.js' charset='utf-8'></script>
+        <script src='js/lindenmayer.js'></script>
+</head>
+
+<body>
+        <div>
+                <button onclick='lindenmayer.move(10)'>Forward</button>
+                <button onclick='lindenmayer.turn(45)'>Right</button>
+                <button onclick='lindenmayer.turn(-45)'>Left</button>
+                <button onclick='lindenmayer.penUp()'>Pen Up</button>
+                <button onclick='lindenmayer.penDown()'>Pen Down</button>
+                <button onclick='lindenmayer.go()'>Go</button>
+        </div>
+        <div id='lindenmayer-div'></div>
+        <script>
+                
+                document.addEventListener('DOMContentLoaded', function () {
+                        var div = d3.select('#lindenmayer-div')[0][0];
+                        lindenmayer.create(div);
+                        lindenmayer.draw();
+                });
+        </script>
+</body>
+</html>
+
