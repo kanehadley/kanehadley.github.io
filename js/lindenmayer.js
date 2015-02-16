@@ -5,13 +5,13 @@ var lindenmayer = (function (lindenmayer) {
     function create (div) {
         var svg = d3.select(div).append('svg')
             .attr('id', 'lindenmayer-root')
-            .attr('width', 500)
-            .attr('height', 500);
+            .attr('width', 1000)
+            .attr('height', 1000);
 
         svg.append('rect')
             .attr({
-                width: 500,
-                height: 500,
+                width: 1000,
+                height: 1000,
                 stroke: 'black',
                 fill: 'white'
             });
@@ -21,7 +21,7 @@ var lindenmayer = (function (lindenmayer) {
         svg.append('g').attr('id', 'drawing');
 
         x = 50;
-        y = 250;
+        y = 500;
 
         heading = 0;
         lines = [];
@@ -191,7 +191,8 @@ var lindenmayer = (function (lindenmayer) {
                         processStep(
                         processStep(
                         processStep(
-                        processStep('0'))))));
+                        processStep(
+                        processStep('0')))))));
         update();
     }
 
