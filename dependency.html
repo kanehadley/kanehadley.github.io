@@ -14,12 +14,12 @@
         <script>
                 
                 document.addEventListener('DOMContentLoaded', function () {
-                        //var div = d3.select('#lindenmayer-div')[0][0];
+                        var div = d3.select('#dependency-div').node();
                         //lindenmayer.create(div);
                         //lindenmayer.draw();
 //                        var div = d3.select('#dependency-div')[0][0];
-//                        dependency.create(div);
-//                        dependency.draw(dependency.test);
+                        var visualization = new dependency.DependencyGraph(div);
+                        dependency.test(visualization);
                 });
         </script>
 </body>
