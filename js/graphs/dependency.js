@@ -1,14 +1,13 @@
 var dependency = (function (dependency) {
     'use strict';
 
-    function test () {
-        var dgraph = new dependency.DependencyGraph(d3.select('#dependency-div').node());
+    function test (dgraph) {
         dgraph
             .addNode('a').addNeighbor('root', 'a')
             .addNode('b').addNeighbor('root', 'b')
             .addNode('c').addNeighbor('a', 'c');
 
-        var output = dgraph.convertGraphToVisual(dgraph.graph());
+        //var output = dgraph.convertGraphToVisual(dgraph.graph());
 
         dgraph.render();
 
@@ -16,12 +15,14 @@ var dependency = (function (dependency) {
     }
 
     function DependencyGraph (div) {
-        var _graph = new dependency.Graph('dependency-graph').addNode('root', {});
+        var _graph = new dependency.Graph('dependency-graph');
         var _container = div;
         var _root;
         var _width = 1000;
-        var _height = 1000;
+        var _height = 600;
+        var that = this;
 
+        _graph.addNode('root', {});
         _root = d3.select(_container).append('svg')
             .attr({
                 id: 'dependency-root',
@@ -42,12 +43,14 @@ var dependency = (function (dependency) {
 
         _root.append('g').attr('id', 'viewer');
 
-        this.graph = function () {
+        function graph () {
             return _graph;
-        };
+        }
 
-        this.render = function () {
+        function render () {
+            var depthPixels = 100;
             var data = convertGraphToVisual(_graph);
+            data = graphToImage(_graph);
 
             var selection = _root.select('g#viewer')
               .selectAll('rect').data(data);
@@ -58,8 +61,8 @@ var dependency = (function (dependency) {
 
             selection
                 .attr({
-                    x: function (d) { return d.x * 100 + 'px'; },
-                    y: function (d) { return d.y * 100 + 'px'; },
+                    x: function (d) { return d.x * depthPixels + 'px'; },
+                    y: function (d) { return d.y * depthPixels + 'px'; },
                     width: 10,
                     height: 10
                 })
@@ -67,17 +70,77 @@ var dependency = (function (dependency) {
                     fill: 'red'
                 });
 
-        };
+            var textSelection = _root.select('g#viewer')
+                .selectAll('text').data(data);
 
-        this.addNode = function (key, value) {
+            textSelection.exit().remove();
+            textSelection.enter().append('text');
+
+            textSelection.attr({
+                    x: function (d) { return d.x * depthPixels + 'px'; },
+                    y: function (d) { return d.y * depthPixels + 'px'; },
+            }).text(function (d) { return d.key; });
+
+        }
+
+        function addNode (key, value) {
             _graph.addNode(key, value);
-            return this;
-        };
+            return that;
+        }
 
-        this.addNeighbor = function (key, neighborKey) {
-            _graph.addNeighbor(key, neighborKey);
-            return this;
-        };
+        function addNeighbor (nodeKey, neighborKey) {
+            _graph.addNeighbor(nodeKey, neighborKey);
+            return that;
+        }
+
+        function graphToImage (graph) {
+            var depths = generateDepths('root', {}, 0);
+            var nodeKeys = _graph.nodes();
+            var depthMax = {};
+            var depthCount = {};
+            d3.range(Object.keys(depths).length).forEach(function (depth) {
+                depthMax[depth] = Object.keys(depths).map(function (key) { return depths[key]; }).filter(function (nodeDepth) { return nodeDepth === depth; }).length;
+                depthCount[depth] = 0;
+            });
+            var height = depthMax[findWidestDepth(depths)];
+
+            var shapes = nodeKeys.map(function (nodeKey) {
+                return {
+                    key: nodeKey,
+                    x: depths[nodeKey],
+                    y: (function () {
+                            var depth = depths[nodeKey];
+                            var bestHeight = Math.floor(depthCount[depth] + ((height - depthMax[depth]) / 2));
+
+                            depthCount[depth] += 1;
+                            return bestHeight;
+                        })() 
+                };
+            });
+
+            return shapes;
+
+            function generateDepths (node, depths, depthCount) {
+                depths[node] = depthCount;
+
+                graph.neighbors(node).forEach(function (neighbor) {
+                    depths = generateDepths(neighbor, depths, depthCount + 1);
+                });
+
+                return depths;
+            }
+
+            function findWidestDepth (depths) {
+                var depthMap = Object.keys(depths).map(function (key) {
+                    return depths[key];
+                });
+                return d3.range(Object.keys(depths).length).map(function (depth) {
+                    return [depth, depthMap.filter(function (nodeDepth) { return nodeDepth === depth; }).length];
+                }).reduce(function (depthA, depthB) {
+                    return depthA[1] > depthB[1] ? depthA : depthB;
+                })[0];
+            }
+        }
 
         function convertGraphToVisual (graph) {
 
@@ -118,8 +181,10 @@ var dependency = (function (dependency) {
 
         }
 
-        this.convertGraphToVisual = convertGraphToVisual;
-
+        this.addNode = addNode;
+        this.addNeighbor = addNeighbor;
+        this.graph = graph;
+        this.render = render;
     }
 
 
