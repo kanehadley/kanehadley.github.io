@@ -26,6 +26,7 @@ var huffman = (function (huffman) {
 
         _svgRoot.append('g').attr('id','lines');
         _svgRoot.append('g').attr('id','circles');
+        _svgRoot.append('g').attr('id','values');
 
         function render () {
             var treeDepth = maxDepth(_tree);
@@ -57,11 +58,21 @@ var huffman = (function (huffman) {
                 .attr({
                     cx: function (d) { return offsetX + scaleX * d.x; },
                     cy: function (d) { return offsetY + scaleY  * d.y; },
-                    r: 5
+                    r: 10 
                 }).style({
                     stroke: 'black',
                     fill: 'white'
-                }); 
+                });
+
+            _svgRoot.select('g#values').selectAll('text')
+                .data(nodes)
+              .enter().append('text')
+                .attr({
+                    x: function (d) { return offsetX + scaleX * d.x; },
+                    y: function (d) { return offsetY + scaleY * d.y; },
+                    dy: 5,
+                    dx: -5
+                }).text(function (d) {return d.value;});
 
             function generate (node, y, x, prevX) {
                 if (node === null) {
@@ -71,7 +82,7 @@ var huffman = (function (huffman) {
                 var delta = Math.abs((prevX - x) / 2);
                 var left = generate(node.leftChild, y + 1, x - delta, x);
                 var right = generate(node.rightChild, y + 1, x + delta, x);
-                var obj = {x:x, y:y};
+                var obj = {x:x, y:y, value:node.value};
                 if (left.length > 0) {
                     lines.push([obj, left[0]]);
                 }
