@@ -30,7 +30,7 @@ var huffman = (function (huffman) {
             var min = -distance / 2;
             var max = distance / 2;
             var lines = [];
-            var nodes = generate (_tree, 0, distance / 2);
+            var nodes = generate (_tree, 0, distance / 2, 0);
             var offsetX = 10;
             var offsetY = 10;
             var scaleX = (_width - 2 * offsetX) / distance ;
@@ -62,13 +62,14 @@ var huffman = (function (huffman) {
                     fill: 'none'
                 }); 
 
-            function generate (node, y, x) {
+            function generate (node, y, x, prevX) {
                 if (node === null) {
                     return [];
                 }
 
-                var left = generate(node.leftChild, y + 1, x <= distance / 2 ? x / 2: distance / 2 + (x - distance / 2) / 2);
-                var right = generate(node.rightChild, y + 1, x >= distance / 2 ? x + (distance - x) / 2 : x + (((distance / 2) - x) / 2));
+                var delta = Math.abs((prevX - x) / 2);
+                var left = generate(node.leftChild, y + 1, x - delta, x);
+                var right = generate(node.rightChild, y + 1, x + delta, x);
                 var obj = {x:x, y:y};
                 if (left.length > 0) {
                     lines.push([obj, left[0]]);
