@@ -1,0 +1,21 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+        <script src='vendor/d3.v3.min.js' charset='utf-8'></script>
+        <script src='js/huffman/visualizer.js'></script>
+        <script src='js/huffman/converter.js'></script>
+</head>
+<body>
+        <div id='huffman-div'></div>
+        <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                        var div = d3.select('#huffman-div').node();
+                        var source = "j'aime aller sur le bord de l'eau les jeudis ou les jours impairs";
+
+                        var converter = new huffman.Converter(source);
+                        var visualizer = new huffman.HuffmanVisualizer(div, converter.tree());
+                        visualizer.render();
+                });
+        </script>
+</body>
+</html>
