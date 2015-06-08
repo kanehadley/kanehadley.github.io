@@ -21,7 +21,7 @@ var huffman = (function (huffman) {
         function generateAlphabet () {
             _alphabet = [];
             _source.split('').forEach(function (character) {
-                if (!(character in _alphabet)) {
+                if (_alphabet.indexOf(character) < 0) {
                     _alphabet.push(character);
                 }
             });
