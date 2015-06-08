@@ -3,7 +3,7 @@ var huffman = (function (huffman) {
 
     function HuffmanVisualizer (div, tree) {
 
-        var _width = 700;
+        var _width = 800;
         var _height = 700;
         var _tree = tree;
         var _container = d3.select(div);
@@ -24,6 +24,9 @@ var huffman = (function (huffman) {
             fill: 'none'
         });
 
+        _svgRoot.append('g').attr('id','lines');
+        _svgRoot.append('g').attr('id','circles');
+
         function render () {
             var treeDepth = maxDepth(_tree);
             var distance = Math.pow(2, treeDepth);
@@ -36,9 +39,7 @@ var huffman = (function (huffman) {
             var scaleX = (_width - 2 * offsetX) / distance ;
             var scaleY = 20;
 
-            var bNodes = nodes.slice(1, nodes.length).concat([nodes[nodes.length - 1]]);
-
-            _svgRoot.selectAll('line')
+            _svgRoot.select('g#lines').selectAll('line')
                 .data(lines)
               .enter().append('line')
                 .attr({
@@ -50,7 +51,7 @@ var huffman = (function (huffman) {
                     stroke: 'black'
                 });
 
-            _svgRoot.selectAll('circle')
+            _svgRoot.select('g#circles').selectAll('circle')
                 .data(nodes)
               .enter().append('circle')
                 .attr({
@@ -59,7 +60,7 @@ var huffman = (function (huffman) {
                     r: 5
                 }).style({
                     stroke: 'black',
-                    fill: 'none'
+                    fill: 'white'
                 }); 
 
             function generate (node, y, x, prevX) {
