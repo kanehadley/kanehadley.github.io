@@ -6,15 +6,20 @@
         <script src='js/huffman/converter.js'></script>
 </head>
 <body>
+        <textarea id='huffman-data' rows='4' cols='50'></textarea>
+        <button id='generate' type='button'>Generate</button>
         <div id='huffman-div'></div>
         <script>
                 document.addEventListener('DOMContentLoaded', function () {
                         var div = d3.select('#huffman-div').node();
+                        d3.select('#generate').on('click', function () {
+                                visualizer.render(new huffman.Converter(d3.select('#huffman-data').node().value).tree());
+                        })
                         var source = "j'aime aller sur le bord de l'eau les jeudis ou les jours impairs";
 
                         var converter = new huffman.Converter(source);
-                        var visualizer = new huffman.HuffmanVisualizer(div, converter.tree());
-                        visualizer.render();
+                        var visualizer = new huffman.HuffmanVisualizer(div);
+                        visualizer.render(converter.tree());
                 });
         </script>
 </body>
