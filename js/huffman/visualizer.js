@@ -1,11 +1,10 @@
 var huffman = (function (huffman) {
     'use strict';
 
-    function HuffmanVisualizer (div, tree) {
+    function HuffmanVisualizer (div) {
 
         var _width = 800;
         var _height = 700;
-        var _tree = tree;
         var _container = d3.select(div);
         var _svgRoot = _container.append('svg').attr({
             width: _width,
@@ -28,7 +27,7 @@ var huffman = (function (huffman) {
         _svgRoot.append('g').attr('id','circles');
         _svgRoot.append('g').attr('id','values');
 
-        function render () {
+        function render (_tree) {
             var treeDepth = maxDepth(_tree);
             var distance = Math.pow(2, treeDepth);
             var min = -distance / 2;
@@ -40,9 +39,14 @@ var huffman = (function (huffman) {
             var scaleX = (_width - 2 * offsetX) / distance ;
             var scaleY = 20;
 
-            _svgRoot.select('g#lines').selectAll('line')
-                .data(lines)
-              .enter().append('line')
+            var lineSelection = _svgRoot.select('g#lines').selectAll('line')
+                .data(lines);
+
+            lineSelection.exit().remove();
+
+            lineSelection.enter().append('line');
+
+            lineSelection
                 .attr({
                     x1: function (d) { return offsetX + scaleX * d[0].x; },
                     y1: function (d) { return offsetY + scaleY * d[0].y; },
@@ -52,9 +56,14 @@ var huffman = (function (huffman) {
                     stroke: 'black'
                 });
 
-            _svgRoot.select('g#circles').selectAll('circle')
-                .data(nodes)
-              .enter().append('circle')
+            var circleSelection = _svgRoot.select('g#circles').selectAll('circle')
+                .data(nodes);
+
+            circleSelection.exit().remove();
+
+            circleSelection.enter().append('circle');
+
+            circleSelection
                 .attr({
                     cx: function (d) { return offsetX + scaleX * d.x; },
                     cy: function (d) { return offsetY + scaleY  * d.y; },
@@ -64,9 +73,14 @@ var huffman = (function (huffman) {
                     fill: 'white'
                 });
 
-            _svgRoot.select('g#values').selectAll('text')
-                .data(nodes)
-              .enter().append('text')
+            var valuesSelection = _svgRoot.select('g#values').selectAll('text')
+                .data(nodes);
+
+            valuesSelection.exit().remove();
+
+            valuesSelection.enter().append('text');
+
+            valuesSelection
                 .attr({
                     x: function (d) { return offsetX + scaleX * d.x; },
                     y: function (d) { return offsetY + scaleY * d.y; },
