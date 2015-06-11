@@ -32,7 +32,7 @@ var huffman = (function (huffman) {
 
             _weights = {};
             _source.split('').forEach(function (character) {
-                _weights[character] = _weights[character] || 0 + 1;
+                _weights[character] = (_weights[character] || 0) + 1;
                 total += 1;
             });
 
