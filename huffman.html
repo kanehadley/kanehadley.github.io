@@ -13,14 +13,14 @@
                 document.addEventListener('DOMContentLoaded', function () {
                         var div = d3.select('#huffman-div').node();
                         d3.select('#generate').on('click', function () {
-                                visualizer.render(new huffman.Converter(d3.select('#huffman-data').node().value).tree());
+                                visualizer.render(new huffman.Converter(d3.select('#huffman-data').node().value));
                         })
                         var source = "j'aime aller sur le bord de l'eau les jeudis ou les jours impairs";
 
                         //var converter = new huffman.Converter(source);
                         var converter = new huffman.Converter(" ");
                         var visualizer = new huffman.HuffmanVisualizer(div);
-                        visualizer.render(converter.tree());
+                        visualizer.render(converter);
                 });
         </script>
 </body>
