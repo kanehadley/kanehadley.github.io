@@ -11,8 +11,10 @@ var huffman = (function (huffman) {
             height: _height,
             id: 'root'
         });
+        var _viewer = _svgRoot.append('g');
+        var _chart = _svgRoot.append('g');
 
-        _svgRoot.append('rect').attr({
+        _viewer.append('rect').attr({
             x: 0,
             y: 0,
             width: _width,
@@ -23,11 +25,16 @@ var huffman = (function (huffman) {
             fill: 'none'
         });
 
-        _svgRoot.append('g').attr('id','lines');
-        _svgRoot.append('g').attr('id','circles');
-        _svgRoot.append('g').attr('id','values');
+        _chart.append('g').attr('id','table-text');
 
-        function render (_tree) {
+        _viewer.attr('transform', 'translate(0,100)');
+        _viewer.append('g').attr('id','lines');
+        _viewer.append('g').attr('id','circles');
+        _viewer.append('g').attr('id','values');
+
+        function render (converter) {
+            var _tree = converter.tree();
+            var table = converter.table();
             var treeDepth = maxDepth(_tree);
             var distance = Math.pow(2, treeDepth);
             var min = -distance / 2;
@@ -39,7 +46,24 @@ var huffman = (function (huffman) {
             var scaleX = (_width - 2 * offsetX) / distance ;
             var scaleY = 20;
 
-            var lineSelection = _svgRoot.select('g#lines').selectAll('line')
+            var tableData = Object.keys(table).map(function (key) {
+                return [key, table[key]];
+            }).sort(function (key1, key2) {
+                return key2[1].length - key1[1].length;
+            });
+
+            var tableSelection = _chart.select('g#table-text').selectAll('text')
+                .data(tableData);
+            tableSelection.exit().remove();
+            tableSelection.enter().append('text');
+            tableSelection.attr({
+                x: 0,
+                y: function (d, i) { return i * 15;}
+            }).text(function (d) { return d[0] + ': ' + d[1]; });
+
+            _viewer.attr('transform', 'translate(0,' + (Object.keys(table).length * 15) + ')');
+
+            var lineSelection = _viewer.select('g#lines').selectAll('line')
                 .data(lines);
 
             lineSelection.exit().remove();
@@ -56,7 +80,7 @@ var huffman = (function (huffman) {
                     stroke: 'black'
                 });
 
-            var circleSelection = _svgRoot.select('g#circles').selectAll('circle')
+            var circleSelection = _viewer.select('g#circles').selectAll('circle')
                 .data(nodes);
 
             circleSelection.exit().remove();
@@ -73,7 +97,7 @@ var huffman = (function (huffman) {
                     fill: 'white'
                 });
 
-            var valuesSelection = _svgRoot.select('g#values').selectAll('text')
+            var valuesSelection = _viewer.select('g#values').selectAll('text')
                 .data(nodes);
 
             valuesSelection.exit().remove();
