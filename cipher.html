@@ -20,7 +20,7 @@
                                 d3.select('#cipher-output').node().value = visualizer.encrypt(d3.select('#cipher-input').node().value);
                         });
                         d3.select('#decrypt').on('click', function () {
-                                d3.select('#cipher-output').node().value = visualizer.decrypt(d3.select('#cipher-input').node().value);
+                                d3.select('#cipher-input').node().value = visualizer.decrypt(d3.select('#cipher-input').node().value);
                         });
 
                         d3.select('#add-cipher').on('click', function () {
