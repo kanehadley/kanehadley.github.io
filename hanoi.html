@@ -1,0 +1,44 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+        <script src='vendor/d3.v3.min.js' charset='utf-8'></script>
+        <script src='js/hanoi/solver.js'></script>
+        <script src='js/hanoi/visualizer.js'></script>
+</head>
+<body>
+        <button id='column-one' type ='button'>One</button>
+        <button id='column-two' type ='button'>Two</button>
+        <button id='column-three' type ='button'>Three</button>
+        <div id='hanoi-div'></div>
+        <script>
+                document.addEventListener('DOMContentLoaded', function () {
+
+                        var first = -1;
+                        var second = -1;
+                        var div = d3.select('#hanoi-div').node();
+                        var visualizer = new hanoi.HanoiVisualizer(div, {width: 600, height: 300, blocks: 4});
+                        d3.select('#column-one').on('click', function () {
+                                transition(1);
+                        });
+                        d3.select('#column-two').on('click', function () {
+                                transition(2);
+                        });
+                        d3.select('#column-three').on('click', function () {
+                                transition(3);
+                        });
+
+                        function transition (num) {
+                                if (first > -1) {
+                                        second = num;
+                                        visualizer.move(first, second);
+                                        first = -1;
+                                        second = -1;
+
+                                } else {
+                                        first = num;
+                                }
+                        }
+                });
+        </script>
+</body>
+</html>
