@@ -1,29 +1,45 @@
 <!DOCTYPE HTML>
 <html>
   <head>
-  <style>
+    <style>
 
-    .bar:hover {
-      fill: brown;
-    }
+      .bar:hover {
+        fill: brown;
+      }
 
-    .bar {
-      fill: steelblue;
-    }
+      .bar {
+        fill: steelblue;
+      }
 
-    .axis path,
-    .axis line {
-      fill: none;
-      stroke: #000;
-      shape-rendering: crispEdges;
-    }
-  </style>
+      .axis path,
+      .axis line {
+        fill: none;
+        stroke: #000;
+        shape-rendering: crispEdges;
+      }
+    </style>
 
+    <link rel='stylesheet' href='vendor/bootstrap/css/bootstrap.min.css'>
+
+    <script src='vendor/jquery-2.1.4.min.js'></script>
     <script src='vendor/d3.v3.min.js'></script>
+    <script src='vendor/bootstrap/js/bootstrap.min.js'></script>
     <script src='js/education.js'></script>
   </head>
   <body>
     <div id='education-bar-chart'></div>
+
+    <div>
+    <div class='col-xs-5'>
+      Mean</br>
+        <input id='mean' type='range' min='0.0' max='1.0' step='0.01' value='0.5'>
+      </div>
+      <div class='col-xs-5'>
+        Variance</br>
+        <input id='variance' type='range' min='0.0' max='1.0' step='0.01' value='0.5'>
+      </div>
+    </div>
+
     <div id='education-scatter-plot'></div>
     <script>
       document.addEventListener('DOMContentLoaded', function () {
