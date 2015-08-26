@@ -2,86 +2,35 @@
 // gotten to from here: http://catalog.data.gov/dataset/annual-survey-of-school-system-finances
 
 function main () {
-    var oReq = new XMLHttpRequest();
-
-    oReq.open('GET', 'educationData/elsec13t.csv');
-
-    oReq.onload = function () {
-        var status = oReq.status;
-        var response = oReq.responseText;
-        population(JSON.parse(response));
-    };
-
-    oReq.error = function () {
-
-    };
-
-    //oReq.send();
-
-    d3.csv('educationData/elsec13t.csv', type, function (error, data) {
-        education(data);
-    });
-
-    function type (d) {
-        var newData = {};
-
-        Object.keys(d).forEach(function (field) {
-            newData[fieldMap(field)] = valueMap(field, d[field]);
-        });
-        return newData;
-    }
-
-    function fieldMap (field) {
-        var fields = {
-            'TOTALREV': 'total_revenue',
-            'NAME': 'name'
-        };
-
-        return fields[field] ? fields[field] : field;
-    }
-
-    function valueMap (field, value) {
-        if ('TOTALREV' === field) {
-            return +value;
-        }
-        return value;
-    }
-
-}
-
-function education (data) {
-
 
     var div = d3.select('#education-bar-chart');
 
     var chart = new BarChart(div.node());
 
-    chart.render(generateEducationData(data));
+    chart.render(generateBarChartData());
 
     var div2 = d3.select('#education-scatter-plot');
 
     var scatter = new ScatterPlot(div2.node());
 
-    //var meanSlider = d3.select('#mean');
-    //var varianceSlider = d3.select('#variance');
     var meanSlider = $('#mean');
     var varianceSlider = $('#variance');
 
     //meanSlider
     $('#mean')
         .on('change mousemove', function () {
-            scatter.render(generateEducationScatterData(data, parseFloat(meanSlider.val()), parseFloat(varianceSlider.val())));
+            scatter.render(generateScatterPlotData(parseFloat(meanSlider.val()), parseFloat(varianceSlider.val())));
         });
 
     varianceSlider
         .on('change mousemove', function () {
-            scatter.render(generateEducationScatterData(data, parseFloat(meanSlider.val()), parseFloat(varianceSlider.val())));
+            scatter.render(generateScatterPlotData(parseFloat(meanSlider.val()), parseFloat(varianceSlider.val())));
         });
 
-    scatter.render(generateEducationScatterData(data, 0.5, 0.5));
+    scatter.render(generateScatterPlotData(0.5, 0.5));
 }
 
-function generateEducationScatterData (data, mean, variance) {
+function generateScatterPlotData (mean, variance) {
 
     var f = d3.random.normal(mean, variance);
     return d3.range(100).map(function (d) {
@@ -92,25 +41,15 @@ function generateEducationScatterData (data, mean, variance) {
     });
 }
 
-function generateEducationData (data) {
+function generateBarChartData () {
     var alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
     return alphabet.split('').map(function (letter) {
         return {
             'label': letter,
-            'value': data.filter(function (d) {
-                return letter === d.name[0];
-            }).length
+            'value': Math.random() * 100
         };
     });
-}
-
-function filterByField (data, field, value) {
-    return data.filter(function (d) { return value === d[field]; });
-}
-
-function filterByDomain (data, domain) {
-    return filterByField(data, 'construction_domain', domain);
 }
 
 function BarChart (div) {
