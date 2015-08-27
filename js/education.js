@@ -5,9 +5,9 @@ function main () {
 
     var div = d3.select('#education-bar-chart');
 
-    var chart = new BarChart(div.node());
+    var chart = new ColumnChart(div.node());
 
-    chart.render(generateBarChartData());
+    chart.render(generateColumnChartData());
 
     var div2 = d3.select('#education-scatter-plot');
 
@@ -41,7 +41,7 @@ function generateScatterPlotData (mean, variance) {
     });
 }
 
-function generateBarChartData () {
+function generateColumnChartData () {
     var alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
     return alphabet.split('').map(function (letter) {
@@ -52,7 +52,7 @@ function generateBarChartData () {
     });
 }
 
-function BarChart (div) {
+function ColumnChart (div) {
     var width = 1000;
     var height = 500;
     var _svg = d3.select(div).append('svg')
@@ -226,4 +226,8 @@ function ScatterPlot (div) {
     }
 
     this.render = render;
+}
+
+function PieChart (div) {
+
 }
