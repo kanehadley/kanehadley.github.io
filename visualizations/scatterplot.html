@@ -1,0 +1,74 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <style>
+      .axis path,
+      .axis line {
+        fill: none;
+        stroke: #000;
+        shape-rendering: crispEdges;
+      }
+    </style>
+
+    <link rel='stylesheet' href='../vendor/bootstrap/css/bootstrap.min.css'>
+
+    <script src='../vendor/jquery-2.1.4.min.js'></script>
+    <script src='../vendor/d3.v3.min.js'></script>
+    <script src='../vendor/bootstrap/js/bootstrap.min.js'></script>
+    <script src='../js/visualizations/ScatterPlot.js'></script>
+  </head>
+  <body>
+
+    <div>
+      <div class='col-xs-5'>
+        Mean</br>
+        <input id='mean' type='range' min='0.0' max='1.0' step='0.01' value='0.5'>
+      </div>
+      <div class='col-xs-5'>
+        Variance</br>
+        <input id='variance' type='range' min='0.0' max='1.0' step='0.01' value='0.5'>
+      </div>
+    </div>
+
+    <div id='scatter-plot'></div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        var div = $('#scatter-plot')[0];
+
+        var plot = new ScatterPlot(div);
+        plot.render(generateScatterPlotData(0.5, 0.5));
+
+        var meanSlider = $('#mean');
+        var varianceSlider = $('#variance');
+
+        meanSlider
+          .on('change mousemove', function () {
+            plot.render(generateScatterPlotData(
+              parseFloat(meanSlider.val()),
+              parseFloat(varianceSlider.val())
+            ));
+          });
+
+        varianceSlider
+          .on('change mousemove', function () {
+            plot.render(generateScatterPlotData(
+              parseFloat(meanSlider.val()),
+              parseFloat(varianceSlider.val())
+            ));
+          });
+
+        function generateScatterPlotData (mean, variance) {
+          var f = d3.random.normal(mean, variance);
+          return d3.range(100).map(function (d) {
+            return {
+              'x': f(),
+              'y': f()
+            };
+          });
+        }
+
+      });
+    </script>
+  </body>
+</html>
