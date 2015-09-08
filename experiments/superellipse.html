@@ -1,0 +1,92 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <script src='../vendor/jquery-2.1.4.min.js'></script>
+  <script src='../vendor/d3.v3.min.js'></script>
+  <script src='../js/superellipse.js'></script>
+</head>
+<body>
+  <div>
+    <div>
+      A</br>
+      <input id='a-slider' type='range' min='0.0' max='1.0' step='0.01' value='0.5'>
+      <input id='a-text' type='text' value='0.5'>
+    </div>
+    <div>
+      B</br>
+      <input id='b-slider' type='range' min='0.0' max='1.0' step='0.01' value='0.5'>
+      <input id='b-text' type='text' value='0.5'>
+    </div>
+    <div>
+      M</br>
+      <input id='m-slider' type='range' min='0.0' max='3.0' step='0.01' value='0.5'>
+      <input id='m-text' type='text' value='0.5'>
+    </div>
+    <div>
+      N</br>
+      <input id='n-slider' type='range' min='0.0' max='3.0' step='0.01' value='0.5'>
+      <input id='n-text' type='text' value='0.5'>
+    </div>
+  </div>
+
+  <div id='superellipse-plot'></div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var svg = d3.select('#superellipse-plot').append('svg')
+        .attr({
+          'width': 500,
+          'height': 500
+        });
+      svg.append('path');
+
+      var config = {
+        'width': 500,
+        'height': 500,
+      };
+
+      $('#a-slider').on('change mousemove', function () {
+        updateTextInput();
+        renderSuperellipse(svg, config);
+      });
+
+      $('#b-slider').on('change mousemove', function () {
+        updateTextInput();
+        renderSuperellipse(svg, config);
+      });
+
+      $('#m-slider').on('change mousemove', function () {
+        updateTextInput();
+        renderSuperellipse(svg, config);
+      });
+
+      $('#n-slider').on('change mousemove', function () {
+        updateTextInput();
+        renderSuperellipse(svg, config);
+      });
+
+      $('#a-text').on('change', function () {
+        updateSliders();
+        renderSuperellipse(svg, config);
+      });
+
+      $('#b-text').on('change', function () {
+        updateSliders();
+        renderSuperellipse(svg, config);
+      });
+
+      $('#m-text').on('change', function () {
+        updateSliders();
+        renderSuperellipse(svg, config);
+      });
+
+      $('#n-text').on('change', function () {
+        updateSliders();
+        renderSuperellipse(svg, config);
+      });
+
+      renderSuperellipse(svg, config);
+    });
+  </script>
+</body>
+</html>
