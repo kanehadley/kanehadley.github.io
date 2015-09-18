@@ -4,3 +4,4 @@
 4) Links
 5) Attributes
 6) More meta and horizontal rule splitting
+7) Preformatted text
