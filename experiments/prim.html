@@ -9,6 +9,8 @@
 <body>
   <button id='step'>Step</button>
   <button id='step10'>Step 10</button>
+  <button id='step100'>Step 100</button>
+  <button id='clear'>Clear</button>
   <button id='solve'>Solve</button>
   <div id='maze'></div>
 
@@ -19,6 +21,9 @@
     });
     d3.select('#step10').on('click',function () {
       prim.step10();
+    });
+    d3.select('#step100').on('click',function () {
+      prim.step100();
     });
     d3.select('#solve').on('click',function () {
       prim.solve();
