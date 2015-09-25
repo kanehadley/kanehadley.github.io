@@ -63,7 +63,7 @@ function primGenerator (config) {
         // Add walls of accepted to potential paths
         // While walls in list
         //    Pick random wall from list
-        var wall = _wallList.shift();
+        var wall = _wallList.splice(parseInt(Math.random() * _wallList.length),1)[0];
         //    If cell on opposite side isn't in maze then
         if (-1 === elementIndex(_rooms, wall[1][0], wall[1][1])) {
         //        add the cell to the accepted
