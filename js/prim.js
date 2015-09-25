@@ -55,9 +55,12 @@ function primGenerator (config) {
     }
 
     function solve () {
-        while (_wallList.length > 0) {
+        var interval = setInterval(function () {
             step();
-        }
+            if (_wallList.length === 0) {
+                clearInterval(interval);
+            }
+        }, 100);
     }
 
     function step () {
@@ -74,9 +77,15 @@ function primGenerator (config) {
             _cells.splice(elementIndex(_cells, wall[1][0], wall[1][1]), 1);
         //        add the cell's walls to the wall list
             addNeighbors(wall[1][0], wall[1][1]);
-            _wallList = _wallList.filter(function (d) {
-                return -1 === elementIndex(_rooms, d[1][0], d[1][1]);
-            });
+            if (_rooms.length < _cells.length) {
+                _wallList = _wallList.filter(function (d) {
+                    return -1 === elementIndex(_rooms, d[1][0], d[1][1]);
+                });
+            } else {
+                _wallList = _wallList.filter(function (d) {
+                    return -1 < elementIndex(_cells, d[1][0], d[1][1]);
+                });
+            }
         }
         //    Remove wall from wall list
 
@@ -84,7 +93,25 @@ function primGenerator (config) {
     }
 
     function step10 () {
-        d3.range(10).forEach(function () { step(); });
+        var stepsDone = 0;
+        var interval = setInterval(function () {
+            step();
+            stepsDone += 1;
+            if (stepsDone >= 10) {
+                clearInterval(interval);
+            }
+        }, 100);
+    }
+
+    function step100 () {
+        var stepsDone = 0;
+        var interval = setInterval(function () {
+            step();
+            stepsDone += 1;
+            if (stepsDone >= 100) {
+                clearInterval(interval);
+            }
+        }, 100);
     }
 
     function addNeighbors (x, y) {
@@ -248,6 +275,7 @@ function primGenerator (config) {
     prim.solve = solve;
     prim.step = step;
     prim.step10 = step10;
+    prim.step100 = step100;
 
     return prim;
 
