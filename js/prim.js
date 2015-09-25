@@ -55,7 +55,9 @@ function primGenerator (config) {
     }
 
     function solve () {
-        debugger;
+        while (_wallList.length > 0) {
+            step();
+        }
     }
 
     function step () {
