@@ -8,12 +8,16 @@
 </head>
 <body>
   <button id='step'>Step</button>
+  <button id='step10'>Step 10</button>
   <div id='maze'></div>
 
   <script>
     var prim = main()
     d3.select('#step').on('click',function () {
       prim.step();
+    });
+    d3.select('#step10').on('click',function () {
+      prim.step10();
     });
   </script>
 </body>
