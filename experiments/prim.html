@@ -25,6 +25,11 @@
     d3.select('#step100').on('click',function () {
       prim.step100();
     });
+    d3.select('#clear').on('click',function () {
+      d3.select('#maze svg').remove();
+      prim = main();
+      prim();
+    });
     d3.select('#solve').on('click',function () {
       prim.solve();
     });
