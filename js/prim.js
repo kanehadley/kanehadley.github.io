@@ -115,6 +115,7 @@ function primGenerator (config) {
         var rectData = generateCells(_cells);
         rectData = rectData.concat(generateRooms(_rooms));
         rectData = rectData.concat(generatePassages(_passages));
+        rectData = rectData.concat(generatePotentials(_wallList));
 
         var r = _rects.selectAll('rect').data(rectData);
 
@@ -178,8 +179,21 @@ function primGenerator (config) {
         });
     }
 
-    function generatePotentials () {
+    function generatePotentials (walls) {
+        return walls.map(function (wall) {
+            return [wall[1][0], wall[1][1]];
+        }).map(function (room) {
+            var x = room[0],
+                y = room[1];
 
+            return {
+                'x': (1 + (x * 2)) * _sideLength,
+                'y': (1 + (y * 2)) * _sideLength,
+                'width': _sideLength,
+                'height': _sideLength,
+                'color': 'blue'
+            };
+        });
     }
 
     function drawBorder () {
