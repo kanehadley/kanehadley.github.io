@@ -72,10 +72,17 @@ function primGenerator (config) {
             _cells.splice(elementIndex(_cells, wall[1][0], wall[1][1]), 1);
         //        add the cell's walls to the wall list
             addNeighbors(wall[1][0], wall[1][1]);
+            _wallList = _wallList.filter(function (d) {
+                return -1 === elementIndex(_rooms, d[1][0], d[1][1]);
+            });
         }
         //    Remove wall from wall list
 
         prim();
+    }
+
+    function step10 () {
+        d3.range(10).forEach(function () { step(); });
     }
 
     function addNeighbors (x, y) {
@@ -94,13 +101,14 @@ function primGenerator (config) {
     }
 
     function elementIndex (arr, x, y) {
+        var index = -1;
         arr.forEach(function (d, i) {
-            if (d[0] === x && d[y] === y) {
-                return i;
+            if (d[0] === x && d[1] === y) {
+                index = i;
             }
         });
 
-        return -1;
+        return index;
     }
 
     function drawRects () {
@@ -217,6 +225,7 @@ function primGenerator (config) {
 
     prim.solve = solve;
     prim.step = step;
+    prim.step10 = step10;
 
     return prim;
 
