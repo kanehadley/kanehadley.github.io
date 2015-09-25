@@ -7,8 +7,14 @@
   <script src='../js/prim.js'></script>
 </head>
 <body>
+  <button id='step'>Step</button>
   <div id='maze'></div>
 
-  <script>main()</script>
+  <script>
+    var prim = main()
+    d3.select('#step').on('click',function () {
+      prim.step();
+    });
+  </script>
 </body>
 </html>

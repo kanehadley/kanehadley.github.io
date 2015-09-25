@@ -1,6 +1,6 @@
 function primGenerator (config) {
-    var _width = 800;
-    var _height = 600;
+    var _width = 810;
+    var _height = 610;
 
     var _sideLength = 10;
 
@@ -9,9 +9,13 @@ function primGenerator (config) {
 
     var _cells = [];
 
-    var _walls = [];
+    var _wallList = [];
+
+    var _rooms = [];
 
     var _passages = [];
+
+    var _potentials = [];
 
     var _div = d3.select(config.divId);
     var _svg = _div.append('svg').attr({
@@ -25,6 +29,18 @@ function primGenerator (config) {
 
     var _rects = _svg.append('g');
 
+    _cells = (function () {
+        return d3.range(_cols).map(function (i) {
+            return d3.range(_rows).map(function (j) {
+                return [i, j];
+            });
+        }).reduce(function (a, b) { return a.concat(b); });
+    })();
+
+    _rooms = [[0,0]];
+
+    addNeighbors(0, 0);
+
     function prim () {
         _background.attr({
             'width': _width,
@@ -34,10 +50,127 @@ function primGenerator (config) {
         });
 
         drawBorder();
+        drawRects();
         
     }
 
-    function render () {
+    function solve () {
+        debugger;
+    }
+
+    function step () {
+        // Pick cell and add it to accepted
+        // Add walls of accepted to potential paths
+        // While walls in list
+        //    Pick random wall from list
+        var wall = _wallList.shift();
+        //    If cell on opposite side isn't in maze then
+        if (-1 === elementIndex(_rooms, wall[1][0], wall[1][1])) {
+        //        add the cell to the accepted
+            _rooms.push([wall[1][0], wall[1][1]]);
+            _passages.push(wall);
+            _cells.splice(elementIndex(_cells, wall[1][0], wall[1][1]), 1);
+        //        add the cell's walls to the wall list
+            addNeighbors(wall[1][0], wall[1][1]);
+        }
+        //    Remove wall from wall list
+
+        prim();
+    }
+
+    function addNeighbors (x, y) {
+        _wallList = _wallList.concat([
+            [-1, 0],
+            [0, -1],
+            [1, 0],
+            [0, 1]
+        ].map(function (d) {
+            return [x + d[0], y + d[1]];
+        }).filter(function (d) {
+            return d[0] > -1 && d[1] > -1 && d[0] < _cols && d[1] < _rows;
+        }).map(function (d) {
+            return [[x, y], d];
+        }));
+    }
+
+    function elementIndex (arr, x, y) {
+        arr.forEach(function (d, i) {
+            if (d[0] === x && d[y] === y) {
+                return i;
+            }
+        });
+
+        return -1;
+    }
+
+    function drawRects () {
+        var rectData = generateCells(_cells);
+        rectData = rectData.concat(generateRooms(_rooms));
+        rectData = rectData.concat(generatePassages(_passages));
+
+        var r = _rects.selectAll('rect').data(rectData);
+
+        r.exit().remove();
+        r.enter().append('rect');
+        r.attr({
+            'x': function (d) { return d.x; },
+            'y': function (d) { return d.y; },
+            'width': function (d) { return d.width; },
+            'height': function (d) { return d.height; }
+        }).style({
+            'fill': function (d) { return d.color; }
+        });
+
+    }
+
+    function generateCells (cells) {
+        return cells.map(function (cell) {
+            var x = cell[0],
+                y = cell[1];
+
+            return {
+                'x': (1 + (x * 2)) * _sideLength,
+                'y': (1 + (y * 2)) * _sideLength,
+                'width': _sideLength,
+                'height': _sideLength,
+                'color': 'gray'
+            };
+        });
+    }
+
+    function generateRooms (rooms) {
+        return rooms.map(function (room) {
+            var x = room[0],
+                y = room[1];
+
+            return {
+                'x': (1 + (x * 2)) * _sideLength,
+                'y': (1 + (y * 2)) * _sideLength,
+                'width': _sideLength,
+                'height': _sideLength,
+                'color': 'white'
+            };
+        });
+    }
+
+    function generatePassages (passages) {
+        return passages.map(function (passage) {
+            var x1 = passage[0][0],
+                y1 = passage[0][1],
+                x2 = passage[1][0],
+                y2 = passage[1][1];
+
+            return {
+                'x': (1 + (Math.min(x1, x2) * 2)) * _sideLength,
+                'y': (1 + (Math.min(y1, y2) * 2)) * _sideLength,
+                'width': ((Math.abs(x2 - x1) * 2) + 1) * _sideLength,
+                'height': ((Math.abs(y2 - y1) * 2) + 1) * _sideLength,
+                'color': 'white'
+            };
+        });
+    }
+
+    function generatePotentials () {
 
     }
 
@@ -82,7 +215,8 @@ function primGenerator (config) {
         });
     }
 
-    prim.render = render;
+    prim.solve = solve;
+    prim.step = step;
 
     return prim;
 
@@ -95,6 +229,8 @@ function main () {
 
     var prim = primGenerator(config);
 
-    prim();
+    //prim.solve();
+    //prim();
+    return prim;
 
 }
