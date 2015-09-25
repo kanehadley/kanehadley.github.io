@@ -198,26 +198,32 @@ function primGenerator (config) {
         });
     }
 
+    // Creates the red border with an opening for the entrance and exit
+    // to the procedurally generated maze.
     function drawBorder () {
         var borderRects = [
+            // Top border
             {
                 'x': 0,
                 'y': 0,
                 'width': _width,
                 'height': _sideLength
             },
+            // Right border
             {
                 'x': _width - _sideLength,
                 'y': 0,
                 'width': _sideLength,
                 'height': _height - (2 * _sideLength)
             },
+            // Bottom border
             {
                 'x': 0,
                 'y': _height - _sideLength,
                 'width': _width,
                 'height': _sideLength
             },
+            // Left border
             {
                 'x': 0,
                 'y': 2 * _sideLength,
