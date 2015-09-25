@@ -254,8 +254,6 @@ function main () {
 
     var prim = primGenerator(config);
 
-    //prim.solve();
-    //prim();
     return prim;
 
 }
