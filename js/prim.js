@@ -210,7 +210,7 @@ function primGenerator (config) {
                 'x': _width - _sideLength,
                 'y': 0,
                 'width': _sideLength,
-                'height': _height 
+                'height': _height - (2 * _sideLength)
             },
             {
                 'x': 0,
@@ -220,9 +220,9 @@ function primGenerator (config) {
             },
             {
                 'x': 0,
-                'y': 0,
+                'y': 2 * _sideLength,
                 'width': _sideLength,
-                'height': _height
+                'height': _height - (2 * _sideLength)
             }
         ];
 
