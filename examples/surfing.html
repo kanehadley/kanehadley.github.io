@@ -5,17 +5,22 @@
   <link rel="stylesheet" href="../">
   <script src="../js/surfing.js"></script>
   <script src="../vendor/jquery-2.1.4.min.js"></script>
+  <script src="../vendor/d3.v3.min.js"></script>
 </head>
 <body>
   <div id="controls">
-    <textarea id="channelBox" rows="1" cols="50"></textarea>
-    <button id="adder">Add Channel</button>
+    <div>
+      <textarea id="channelBox" rows="1" cols="50"></textarea>
+      <button id="adder">Add Channel</button>
+    </div>
+    <div id="channelButtons">
+    </div>
   </div>
   <div id="viewer">
   </div>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      setup();
+      surfing();
     });
   </script>
 </body>
