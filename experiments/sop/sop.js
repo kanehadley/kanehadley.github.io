@@ -46,6 +46,22 @@ function sop () {
         generateNavigation(pageData);
         generateEditor(pageData);
         d3.select('#page-button').on('click', saveEditor);
+        d3.select('#add-button').on('click', function () {
+            var newPage = {
+                'page': Object.keys(pages).length + 1,
+                'text': '',
+                'links': []
+            };
+            pages[newPage.page] = newPage;
+
+            var pageData = Object.keys(pages).map(function (d) { return pages[d]; });
+
+            generateNavigation(pageData);
+            generateEditor(pageData);
+        });
+        d3.select('#add-link-button').on('click', function () {
+
+        });
     }
 
     function saveEditor () {
