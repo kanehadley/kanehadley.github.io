@@ -146,7 +146,7 @@ function sop () {
             .data(page.links);
         links.exit().remove();
         links.enter().append('div');
-        links.text(function (link) {
+        links.style('color', 'blue').text(function (link) {
                 return link[0];
             }).on('click', function (link) {
                 loadViewer(pages[link[1]]);
