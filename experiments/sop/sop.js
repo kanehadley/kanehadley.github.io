@@ -110,10 +110,12 @@ function sop () {
     }
 
     function loadEditorLinks (page) {
-        var links = d3.select('#page-links').selectAll('div').data(page.links);
+        var links = d3.select('#page-links').selectAll('div').data([]);
+        links.exit().remove();
+        links = d3.select('#page-links').selectAll('div').data(page.links);
         links.exit().remove();
         var divLinks = links.enter().append('div').attr('class', 'link-edit');
-        
+        divLinks = links;
         divLinks.append('textarea').attr({
                 'rows': '1',
                 'cols': '10',
