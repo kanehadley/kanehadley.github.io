@@ -60,7 +60,9 @@ function sop () {
             generateEditor(pageData);
         });
         d3.select('#add-link-button').on('click', function () {
-
+            var links = d3.select('#page-links').selectAll('div').data();
+            links.push(['', 0]);
+            loadEditorLinks({'links':links});
         });
     }
 
