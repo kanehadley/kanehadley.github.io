@@ -1,0 +1,33 @@
+h1#title {
+    text-align: center;
+}
+
+#nav {
+    border-style: solid;
+}
+
+#viewer {
+    border-style: solid;
+}
+
+#content {
+    padding-left: 25px;
+    padding-right: 25px;
+}
+
+#pages {
+    border-style: solid;
+}
+
+#page-viewer {
+    border-style: solid;
+}
+
+#editor {
+    padding-left: 25px;
+    padding-right: 25px;
+}
+
+.link-edit {
+    display: block;
+}
