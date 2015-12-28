@@ -32,13 +32,66 @@
 
         </div>
         <div id="page-viewer" class="col-md-8 col-sm-8">
-            <button id="page-button">Save</button>
-            <button id="add-link-button">Add Link</button>
-            <textarea id="page-content" rows="4" cols="50"></textarea>
-            <div id="page-links"></div>
+          <button id="page-button">Save</button>
+          <button id="add-link-button">Add Link</button>
+          <textarea id="page-content" rows="4" cols="50"></textarea>
+          <div id="page-links"></div>
         </div>
         <button id="add-button">Add Page</button>
       </div>
+    </div>
+
+    <div id="instructions">
+      <p>
+        Here are instructions on how to use the SOP generator. You'll notice
+        there are roughly four sections. There is a list of pages in the
+        upper left, an empty (though soon to be populated) area to the upper
+        right, a list of pages in the lower left, and a text box in the lower
+        right. The top two sections show the SOP booklet and the bottom two
+        sections allow you to edit the booklet's contents. Currently none of
+        the changes are saved to any database. It is all located here on this
+        html page and held in memory using javascript. When you reload the
+        html page everything will be wiped clean.
+      </p>
+
+      <p>
+        Click on any of the pages in the upper left. It'll populate the viewer
+        to the upper right with the text for that page. You'll notice it'll
+        also create blue links to different pages that you can navigate to.
+        Clicking on these links will lead you to pages in the same way as
+        the navigation on the left. Hopefully there are descriptive names
+        for the links to say which page they turn to. We'll get into
+        that next.
+      </p>
+
+      <p>
+        Click on any of the pages in the lower left page listing. The editor
+        to its right will be populated.
+      </p>
+
+      <p>
+        In the text box is the page contents. Below that you'll see a pair(s)
+        of text boxes. These are the links that you saw appearing above in
+        blue. You can freely change the text in the text box. You can also
+        freely change the link text to what you what in the link box on the
+        left. In the link box on the right put the page number that you want
+        the link to send you to. When you're done changing the information
+        press "Save". When you next click on that page number it'll show the
+        new contents (I haven't made it auto update the viewer contents in
+        the upper right on saving yet).
+      </p>
+
+      <p>
+        If you want to add more links press the "Add Link" button. Currently
+        you cannot delete links. There is also no error checking so it would
+        be wise to only add numbers to the page number part of the link.
+      </p>
+
+      <p>
+        If you want to add more pages press the "Add Page" button. It'll
+        update the page navigators with the new page. The page begins empty
+        with no links.
+      </p>
     </div>
 
     <script>
