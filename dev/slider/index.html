@@ -16,7 +16,12 @@
     document.addEventListener('DOMContentLoaded', function () {
       g = sliderGenerator(document.getElementById('game'));
       i = new Image();
+      i.onload = function () {
+        g.width(300).height(300).load(i);
+        g.render();
+      };
       i.src = 'example.jpg';
+
     });
   </script>
 </body>
