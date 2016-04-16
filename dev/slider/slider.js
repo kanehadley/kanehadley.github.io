@@ -53,17 +53,18 @@ function sliderGenerator(canvas) {
 
   game.render = function() {
     //ctx.drawImage(image, 0, 0, width, height);
-    drawTile(shadowCanvas, ctx, 1, 1, 1, 1);
+    //drawTile(shadowCanvas, ctx, 1, 1, 1, 1);
     for (var r = 0; r < rows; r++) {
       for (var c = 0; c < columns; c++) {
-        drawTile(shadowCanvas, ctx, r, c, mapping[r][c][0], mapping[r][c][1]);
+        drawTile(shadowCanvas, ctx, mapping[r][c][0], mapping[r][c][1], r, c);
       }
     }
 
-
-    function drawGrid(canvas) {
-
-    }
+    ctx.fillStyle = 'white';
+    ctx.fillRect(emptyTile[1]*tileWidth,
+                 emptyTile[0]*tileHeight,
+                 tileWidth,
+                 tileHeight);
 
     /**
     *
@@ -119,9 +120,13 @@ function sliderGenerator(canvas) {
       var row = parseInt(mouseY / tileHeight),
         column = parseInt(mouseX / tileWidth);
 
-      console.log(mouseX + ' ' + mouseY + ' ' + row + ' ' + column);
-
       ctx.fillRect(column*tileWidth, row*tileHeight, tileWidth, tileHeight);
+      mapping[emptyTile[0]][emptyTile[1]] = mapping[row][column];
+      mapping[row][column] = [-1, -1];
+      emptyTile = [row, column];
+
+      game.render();
+
     };
 
     return game;
