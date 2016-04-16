@@ -65,6 +65,34 @@ function sliderGenerator(canvas) {
                  tileWidth,
                  tileHeight);
 
+    drawGridLines(ctx);
+
+    function drawGridLines(destination) {
+      for (var c = 0; c < columns; c++) {
+        destination.beginPath();
+        destination.moveTo(c*tileWidth, 0);
+        destination.lineTo(c*tileWidth, height);
+        destination.stroke();
+
+        destination.beginPath();
+        destination.moveTo((c + 1)*tileWidth - 1, 0);
+        destination.lineTo((c + 1)*tileWidth - 1, height);
+        destination.stroke();
+      }
+
+      for (var r = 0; r < rows; r++) {
+        destination.beginPath();
+        destination.moveTo(0, r*tileHeight);
+        destination.lineTo(width, r*tileHeight);
+        destination.stroke();
+
+        destination.beginPath();
+        destination.moveTo(0, (r + 1)*tileHeight - 1);
+        destination.lineTo(width, (r + 1)*tileHeight - 1);
+        destination.stroke();
+      }
+    }
+
     /**
     *
     * Draws a sliced tile from the source to the destination. Automatically
