@@ -100,9 +100,9 @@ function sliderGenerator(canvas) {
 
     function generateStandardMapping(rows, columns) {
       var map = [];
-      for (var r = 0; r < rows; r += 1) {
+      for (var r = 0; r < rows; r++) {
         var rArray = [];
-        for (var c = 0; c < columns; c += 1) {
+        for (var c = 0; c < columns; c++) {
           rArray.push([r,c]);
         }
         map.push(rArray);
