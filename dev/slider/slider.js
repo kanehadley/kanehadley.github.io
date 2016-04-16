@@ -1,3 +1,9 @@
+/*
+
+  Copyright Kane Hadley 2016.
+
+*/
+
 function sliderGenerator(canvas) {
   'use strict';
   var image, mapping;
