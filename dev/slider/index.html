@@ -1,0 +1,23 @@
+<!DOCTYPE HTML5>
+<html>
+<head>
+  <script type="text/javascript" src="slider.js"></script>
+
+  <link rel="stylesheet" href="slider.css">
+</head>
+
+<body>
+  <img src='example.jpg' width="100px" height="100px"></img>
+  <canvas id="game"></canvas>
+
+  <script>
+    var g;
+
+    document.addEventListener('DOMContentLoaded', function () {
+      g = sliderGenerator(document.getElementById('game'));
+      i = new Image();
+      i.src = 'example.jpg';
+    });
+  </script>
+</body>
+</html>
