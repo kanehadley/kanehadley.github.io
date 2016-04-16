@@ -52,14 +52,13 @@ function sliderGenerator(canvas) {
   }
 
   game.render = function() {
-    //ctx.drawImage(image, 0, 0, width, height);
-    //drawTile(shadowCanvas, ctx, 1, 1, 1, 1);
     for (var r = 0; r < rows; r++) {
       for (var c = 0; c < columns; c++) {
         drawTile(shadowCanvas, ctx, mapping[r][c][0], mapping[r][c][1], r, c);
       }
     }
 
+    // Fill in the empty tile as a white square
     ctx.fillStyle = 'white';
     ctx.fillRect(emptyTile[1]*tileWidth,
                  emptyTile[0]*tileHeight,
@@ -120,7 +119,7 @@ function sliderGenerator(canvas) {
       var row = parseInt(mouseY / tileHeight),
         column = parseInt(mouseX / tileWidth);
 
-      ctx.fillRect(column*tileWidth, row*tileHeight, tileWidth, tileHeight);
+      // Swap clicked on tile with the empty tile
       mapping[emptyTile[0]][emptyTile[1]] = mapping[row][column];
       mapping[row][column] = [-1, -1];
       emptyTile = [row, column];
