@@ -6,7 +6,7 @@
 
 function sliderGenerator(canvas) {
   'use strict';
-  var image, mapping;
+  var image, mapping, emptyTile;
   var ctx = canvas.getContext('2d'),
     width = 0,
     height = 0,
@@ -19,6 +19,7 @@ function sliderGenerator(canvas) {
   var sCtx = shadowCanvas.getContext('2d');
 
   mapping = generateStandardMapping(rows, columns);
+  emptyTile = [rows - 1, columns - 1];
 
   var game = function() {
     width = 0;
@@ -110,6 +111,18 @@ function sliderGenerator(canvas) {
       map[rows - 1][columns - 1] = [-1, -1];
       return map;
     }
+
+    canvas.onclick = function (e) {
+      var mouseX = e.offsetX,
+        mouseY = e.offsetY;
+
+      var row = parseInt(mouseY / tileHeight),
+        column = parseInt(mouseX / tileWidth);
+
+      console.log(mouseX + ' ' + mouseY + ' ' + row + ' ' + column);
+
+      ctx.fillRect(column*tileWidth, row*tileHeight, tileWidth, tileHeight);
+    };
 
     return game;
   }
