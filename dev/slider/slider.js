@@ -147,10 +147,15 @@ function sliderGenerator(canvas) {
       var row = parseInt(mouseY / tileHeight),
         column = parseInt(mouseX / tileWidth);
 
+      var dRow = Math.abs(row - emptyTile[0]),
+        dColumn = Math.abs(column - emptyTile[1]);
+
+      if ((1 == dRow || 0 == dRow) && (1 == dColumn || 0 == dColumn) && (dRow + dColumn < 2)) {
       // Swap clicked on tile with the empty tile
-      mapping[emptyTile[0]][emptyTile[1]] = mapping[row][column];
-      mapping[row][column] = [-1, -1];
-      emptyTile = [row, column];
+        mapping[emptyTile[0]][emptyTile[1]] = mapping[row][column];
+        mapping[row][column] = [-1, -1];
+        emptyTile = [row, column];
+      }
 
       game.render();
 
