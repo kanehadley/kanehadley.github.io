@@ -32,6 +32,7 @@ function sidescrollerGenerator(canvas) {
 
   game.start = function() {
     setInterval(function () {
+      handleCollisions();
       updateEntities();
       spawnEnemies();
       game.render();
@@ -59,16 +60,49 @@ function sidescrollerGenerator(canvas) {
       }
     };
 
+    function handleCollisions() {
+      enemies = enemies.map(function (e) {
+        var distances = projectiles.map(function (p) {
+          return Math.sqrt(Math.pow(p.x - e.x, 2) + Math.pow(p.y - e.y, 2));
+        }).filter(function (d) {
+          return d <= (10 + 3);
+        });
+        return {
+          x: e.x,
+          y: e.y,
+          dx: e.dx,
+          dy: e.dy,
+          collision: distances.length > 0 ? true : false
+        }
+      });
+
+      projectiles = projectiles.map(function (p) {
+        var distances = enemies.map(function (e) {
+          return Math.sqrt(Math.pow(p.x - e.x, 2) + Math.pow(p.y - e.y, 2));
+        }).filter(function (d) {
+          return d <= (10 + 3);
+        });
+        return {
+          x: p.x,
+          y: p.y,
+          dx: p.dx,
+          dy: p.dy,
+          collision: distances.length > 0 ? true : false
+        }
+      });
+    }
+
     function updateEntities() {
       enemies = enemies.map(function (e) {
         return {
           x: e.x + e.dx,
           y: e.y + e.dy,
           dx: e.dx,
-          dy: e.dy
+          dy: e.dy,
+          collision: e.collision
         };
       }).filter(function (e) {
-        return e.x > 0;
+        return e.x > 0 && false === e.collision;
       });
 
       projectiles = projectiles.map(function (p) {
@@ -76,10 +110,11 @@ function sidescrollerGenerator(canvas) {
           x: p.x + p.dx,
           y: p.y + p.dy,
           dx: p.dx,
-          dy: p.dy
+          dy: p.dy,
+          collision: p.collision
         };
       }).filter(function (p) {
-        return p.x < width;
+        return p.x < width && false === p.collision;
       });
     }
 
@@ -99,7 +134,8 @@ function sidescrollerGenerator(canvas) {
         x: x,
         y: y,
         dx: -10,
-        dy: 0
+        dy: 0,
+        collision: false
       };
     }
 
@@ -108,7 +144,8 @@ function sidescrollerGenerator(canvas) {
         x: entity.x,
         y: entity.y,
         dx: 10,
-        dy: 0
+        dy: 0,
+        collision: false
       };
     }
   }
