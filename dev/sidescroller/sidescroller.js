@@ -12,10 +12,13 @@ function sidescrollerGenerator(canvas) {
 
   var ctx = canvas.getContext('2d'),
     width = 0,
-    height = 0,
-    MILLISECONDS_PER_FRAME = 1000 / 10;
+    height = 0;
 
-  var entities = [];
+  var MILLISECONDS_PER_FRAME = 1000 / 10,
+    ENTITY_SPAWN_RATE = 0.05;
+
+  var enemies = [];
+  var projectiles = [];
 
   var player = {
     x: 100,
@@ -30,13 +33,34 @@ function sidescrollerGenerator(canvas) {
   game.start = function() {
     setInterval(function () {
       updateEntities();
-      spawnEntities();
+      spawnEnemies();
       game.render();
       console.log('Frame!');
     }, MILLISECONDS_PER_FRAME);
 
+
+    game.keyboard = function(key) {
+      switch(key) {
+        case 'ArrowUp':
+        player.y -= 10;
+        break;
+        case 'ArrowDown':
+        player.y += 10;
+        break;
+        case 'ArrowLeft':
+        player.x -= 10;
+        break;
+        case 'ArrowRight':
+        player.x += 10;
+        break;
+        case 'Space':
+        spawnProjectiles();
+        break;
+      }
+    };
+
     function updateEntities() {
-      entities = entities.map(function (e) {
+      enemies = enemies.map(function (e) {
         return {
           x: e.x + e.dx,
           y: e.y + e.dy,
@@ -46,20 +70,44 @@ function sidescrollerGenerator(canvas) {
       }).filter(function (e) {
         return e.x > 0;
       });
+
+      projectiles = projectiles.map(function (p) {
+        return {
+          x: p.x + p.dx,
+          y: p.y + p.dy,
+          dx: p.dx,
+          dy: p.dy
+        };
+      }).filter(function (p) {
+        return p.x < width;
+      });
     }
 
-    function spawnEntities() {
-      if (Math.random() < 0.3) {
-        entities.push(generateEntity(width - 10,
+    function spawnEnemies() {
+      if (Math.random() < ENTITY_SPAWN_RATE) {
+        enemies.push(generateEnemy(width - 10,
                                      Math.random() * height));
       }
     }
 
-    function generateEntity(x, y) {
+    function spawnProjectiles() {
+      projectiles.push(generateProjectile(player));
+    }
+
+    function generateEnemy(x, y) {
       return {
         x: x,
         y: y,
         dx: -10,
+        dy: 0
+      };
+    }
+
+    function generateProjectile(entity) {
+      return {
+        x: entity.x,
+        y: entity.y,
+        dx: 10,
         dy: 0
       };
     }
@@ -81,22 +129,6 @@ function sidescrollerGenerator(canvas) {
     return newHeight ? this : height;
   }
 
-  game.keyboard = function(key) {
-    switch(key) {
-      case 'ArrowUp':
-        player.y -= 10;
-        break;
-      case 'ArrowDown':
-        player.y += 10;
-        break;
-      case 'ArrowLeft':
-        player.x -= 10;
-        break;
-      case 'ArrowRight':
-        player.x += 10;
-        break;
-    }
-  };
 
   game.render = function() {
     // Draw the background
@@ -112,8 +144,8 @@ function sidescrollerGenerator(canvas) {
     ctx.strokeStyle = 'black';
     ctx.stroke();
 
-    for (var entityIndex in entities) {
-      var entity = entities[entityIndex];
+    for (var entityIndex in enemies) {
+      var entity = enemies[entityIndex];
       ctx.beginPath();
       ctx.arc(entity.x, entity.y, 10, 0, 2 * Math.PI);
       ctx.fillStyle = 'red';
@@ -121,6 +153,18 @@ function sidescrollerGenerator(canvas) {
       ctx.lineWidth = 3;
       ctx.strokeStyle = 'black';
       ctx.stroke();
+    }
+
+    for (var projectileIndex in projectiles) {
+      var projectile = projectiles[projectileIndex];
+      ctx.beginPath();
+      ctx.arc(projectile.x, projectile.y, 3, 0, 2 * Math.PI);
+      ctx.fillStyle = 'yellow';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'black';
+      ctx.stroke();
+
     }
 
     // Draw the border
