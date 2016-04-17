@@ -195,8 +195,11 @@ function sidescrollerGenerator(canvas) {
      *  them. For everyone else move them according to their velocities.
      */
     function updateEntities() {
-      var newEnemyCount, score,
-        oldEnemyCount = enemies.length;
+      var score,
+        collidedEnemies = enemies.filter(function (e) {
+          return true === e.collision;
+        }).length;
+
       enemies = enemies.map(function (e) {
         return {
           x: e.x + e.dx,
@@ -209,11 +212,10 @@ function sidescrollerGenerator(canvas) {
         return e.x > 0 && false === e.collision;
       });
 
-      newEnemyCount = enemies.length;
 
       // Complete Hack for demo purposes. Do not do this.
       score = parseInt(document.getElementById('score').innerText);
-      document.getElementById('score').innerText = score + oldEnemyCount - newEnemyCount;
+      document.getElementById('score').innerText = score + collidedEnemies;
 
       projectiles = projectiles.map(function (p) {
         return {
