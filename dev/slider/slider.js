@@ -26,6 +26,8 @@ function sliderGenerator(canvas) {
     height = 0;
   };
 
+  var that = game;
+
   game.width = function(newWidth) {
     if (newWidth) {
       width = newWidth;
@@ -50,6 +52,38 @@ function sliderGenerator(canvas) {
     image = inputImage;
     sCtx.drawImage(image, 0, 0, width, height);
   }
+
+  /**
+   * Fisher-Yates shuffle obtained from here:
+   * http://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
+  */
+  game.shuffle = function() {
+    var locations = mapping.reduce(function (a, b) { return a.concat(b); });
+    var currentIndex = locations.length, temporaryValue, randomIndex;
+
+    while (0 !== currentIndex) {
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex -= 1;
+
+      temporaryValue = locations[currentIndex];
+      locations[currentIndex] = locations[randomIndex];
+      locations[randomIndex] = temporaryValue;
+    }
+
+    var locationIndex = 0;
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < columns; c++) {
+        mapping[r][c] = locations[locationIndex];
+        if (-1 == locations[locationIndex][0] &&
+            -1 == locations[locationIndex][1]) {
+          emptyTile = [r, c];
+        }
+        locationIndex += 1;
+      }
+    }
+
+    this.render();
+  };
 
   game.render = function() {
     for (var r = 0; r < rows; r++) {
@@ -157,7 +191,7 @@ function sliderGenerator(canvas) {
         emptyTile = [row, column];
       }
 
-      game.render();
+      that.render();
 
     };
 
