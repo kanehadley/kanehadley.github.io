@@ -2,15 +2,18 @@ var g;
 
 document.addEventListener('DOMContentLoaded', function () {
 
-  var enemySpawnRateSlider = document.getElementById('enemySpawnRateSlider');
-  var enemySpawnRateTextfield = document.getElementById('enemySpawnRateTextfield');
-  var enemyVelocitySlider = document.getElementById('enemyVelocitySlider');
-  var enemyVelocityTextfield = document.getElementById('enemyVelocityTextfield');
-  var projectileVelocitySlider = document.getElementById('projectileVelocitySlider');
-  var projectileVelocityTextfield = document.getElementById('projectileVelocityTextfield');
-  var playerVelocitySlider = document.getElementById('playerVelocitySlider');
-  var playerVelocityTextfield = document.getElementById('playerVelocityTextfield');
+  var enemySpawnRateSlider = document.getElementById('enemySpawnRateSlider'),
+    enemySpawnRateTextfield = document.getElementById('enemySpawnRateTextfield'),
+    enemyVelocitySlider = document.getElementById('enemyVelocitySlider'),
+    enemyVelocityTextfield = document.getElementById('enemyVelocityTextfield'),
+    projectileVelocitySlider = document.getElementById('projectileVelocitySlider'),
+    projectileVelocityTextfield = document.getElementById('projectileVelocityTextfield'),
+    playerVelocitySlider = document.getElementById('playerVelocitySlider'),
+    playerVelocityTextfield = document.getElementById('playerVelocityTextfield');
 
+  /**
+   * Sliders to modify values while doing development testing.
+   */
   enemySpawnRateSlider.oninput = function (e) {
     enemySpawnRateTextfield.value = enemySpawnRateSlider.value;
     g.development.updateSpawnRate(parseFloat(enemySpawnRateSlider.value));
@@ -100,11 +103,20 @@ function sidescrollerGenerator(canvas) {
     y: 100
   }
 
+  /**
+   *  Constructor for the sidescrolling game.
+   */
   var game = function () {
     width = 0;
     height = 0;
   }
 
+  /**
+   *  Starts the game loop sequence of:
+   *    Player Input
+   *    Update
+   *    Render
+   */
   game.start = function() {
     setInterval(function () {
       handleCollisions();
@@ -114,7 +126,9 @@ function sidescrollerGenerator(canvas) {
       console.log('Frame!');
     }, MILLISECONDS_PER_FRAME);
 
-
+    /**
+     *  Handles player movement and firing using the keyboard.
+     */
     game.keyboard = function(key) {
       switch(key) {
         case 'ArrowUp':
@@ -135,6 +149,11 @@ function sidescrollerGenerator(canvas) {
       }
     };
 
+    /**
+     *  If a projectile fired from the player collides with a spawned enemy
+     *  circle then mark it for deletion by setting "collision" to true.
+     *  Also mark the projectile for deletion in the same way.
+     */
     function handleCollisions() {
       enemies = enemies.map(function (e) {
         var distances = projectiles.map(function (p) {
@@ -167,7 +186,13 @@ function sidescrollerGenerator(canvas) {
       });
     }
 
+    /**
+     *  Check if there are any entities that need to be deleted. If so delete
+     *  them. For everyone else move them according to their velocities.
+     */
     function updateEntities() {
+      var newEnemyCount, score,
+        oldEnemyCount = enemies.length;
       enemies = enemies.map(function (e) {
         return {
           x: e.x + e.dx,
@@ -179,6 +204,12 @@ function sidescrollerGenerator(canvas) {
       }).filter(function (e) {
         return e.x > 0 && false === e.collision;
       });
+
+      newEnemyCount = enemies.length;
+
+      // Complete Hack for demo purposes. Do not do this.
+      score = parseInt(document.getElementById('score').innerText);
+      document.getElementById('score').innerText = score + oldEnemyCount - newEnemyCount;
 
       projectiles = projectiles.map(function (p) {
         return {
@@ -193,6 +224,9 @@ function sidescrollerGenerator(canvas) {
       });
     }
 
+    /**
+     *  Enemies are generated from the right side of the screen and move left.
+     */
     function spawnEnemies() {
       if (Math.random() < ENTITY_SPAWN_RATE) {
         enemies.push(generateEnemy(width - 10,
@@ -200,11 +234,17 @@ function sidescrollerGenerator(canvas) {
       }
     }
 
+    /**
+     *  Projectiles are generated from the player's circle location and move
+     *  to the right.
+     */
     function spawnProjectiles() {
-      //projectiles.push(generateProjectile(player));
       projectiles = projectiles.concat(generateProjectiles(player));
     }
 
+    /**
+     *  Enemy generator function.
+     */
     function generateEnemy(x, y) {
       return {
         x: x,
@@ -215,6 +255,10 @@ function sidescrollerGenerator(canvas) {
       };
     }
 
+    /**
+     *   Generates one or more projectiles. Automatically generates the spacing
+     *   in the arc between them.
+     */
     function generateProjectiles(entity) {
       var arcDegrees = PROJECTILE_ARC / PROJECTILE_SPAWN_COUNT;
 
@@ -229,13 +273,6 @@ function sidescrollerGenerator(canvas) {
         });
       }
 
-      // return {
-        // x: entity.x,
-        // y: entity.y,
-        // dx: PROJECTILE_VELOCITY,
-        // dy: 0,
-        // collision: false
-      // };
       return newProjectiles;
     }
   }
@@ -256,13 +293,12 @@ function sidescrollerGenerator(canvas) {
     return newHeight ? this : height;
   }
 
-
   game.render = function() {
-    // Draw the background
+    // Draw the background.
     ctx.fillStyle = 'lightblue';
     ctx.fillRect(0, 0, width, height);
 
-    // Draw the player
+    // Draw the player.
     ctx.beginPath();
     ctx.arc(player.x, player.y, 10, 0, 2 * Math.PI);
     ctx.fillStyle = 'green';
@@ -271,6 +307,7 @@ function sidescrollerGenerator(canvas) {
     ctx.strokeStyle = 'black';
     ctx.stroke();
 
+    // Draw the enemy circles.
     for (var entityIndex in enemies) {
       var entity = enemies[entityIndex];
       ctx.beginPath();
@@ -282,6 +319,7 @@ function sidescrollerGenerator(canvas) {
       ctx.stroke();
     }
 
+    // Draw the projectile circles.
     for (var projectileIndex in projectiles) {
       var projectile = projectiles[projectileIndex];
       ctx.beginPath();
@@ -299,6 +337,9 @@ function sidescrollerGenerator(canvas) {
     ctx.stroke();
   }
 
+  /**
+   *  These are to expose private variables for testing and development.
+   */
   game.development = {
     updateSpawnRate: function (newSpawnRate) {
       ENTITY_SPAWN_RATE = newSpawnRate;
