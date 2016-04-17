@@ -1,3 +1,7 @@
+/**
+ *  Copyright Kane Hadley 2016.
+ */
+
 var g;
 
 document.addEventListener('DOMContentLoaded', function () {
