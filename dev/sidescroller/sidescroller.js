@@ -1,6 +1,56 @@
 var g;
 
 document.addEventListener('DOMContentLoaded', function () {
+
+  var enemySpawnRateSlider = document.getElementById('enemySpawnRateSlider');
+  var enemySpawnRateTextfield = document.getElementById('enemySpawnRateTextfield');
+  var enemyVelocitySlider = document.getElementById('enemyVelocitySlider');
+  var enemyVelocityTextfield = document.getElementById('enemyVelocityTextfield');
+  var projectileVelocitySlider = document.getElementById('projectileVelocitySlider');
+  var projectileVelocityTextfield = document.getElementById('projectileVelocityTextfield');
+  var playerVelocitySlider = document.getElementById('playerVelocitySlider');
+  var playerVelocityTextfield = document.getElementById('playerVelocityTextfield');
+
+  enemySpawnRateSlider.oninput = function (e) {
+    enemySpawnRateTextfield.value = enemySpawnRateSlider.value;
+    g.development.updateSpawnRate(parseFloat(enemySpawnRateSlider.value));
+  };
+
+  enemySpawnRateTextfield.oninput = function (e) {
+    enemySpawnRateSlider.value = enemySpawnRateTextfield.value;
+    g.development.updateSpawnRate(parseFloat(enemySpawnRateTextfield.value));
+  }
+
+  enemyVelocitySlider.oninput = function (e) {
+    enemyVelocityTextfield.value = enemyVelocitySlider.value;
+    g.development.updateEnemyVelocity(parseFloat(enemyVelocitySlider.value));
+  };
+
+  enemyVelocityTextfield.oninput = function (e) {
+    enemySpawnRateSlider.value = enemyVelocityTextfield.value;
+    g.development.updateEnemyVelocity(parseFloat(enemyVelocityTextfield.value));
+  }
+
+  projectileVelocitySlider.oninput = function (e) {
+    enemySpawnRateTextfield.value = enemySpawnRateSlider.value;
+    g.development.updateProjectileVelocity(parseFloat(enemySpawnRateSlider.value));
+  };
+
+  projectileVelocityTextfield.oninput = function (e) {
+    projectileVelocitySlider.value = projectileVelocityTextfield.value;
+    g.development.updateProjectileVelocity(parseFloat(projectileVelocityTextfield.value));
+  }
+
+  playerVelocitySlider.oninput = function (e) {
+    playerVelocityTextfield.value = playerVelocitySlider.value;
+    g.development.updatePlayerVelocity(parseFloat(playerVelocitySlider.value));
+  };
+
+  playerVelocityTextfield.oninput = function (e) {
+    playerVelocitySlider.value = playerVelocityTextfield.value;
+    g.development.updatePlayerVelocity(parseFloat(playerVelocityTextfield.value));
+  }
+
   g = sidescrollerGenerator(document.getElementById('game'));
 
   g.width(800).height(200);
@@ -15,7 +65,10 @@ function sidescrollerGenerator(canvas) {
     height = 0;
 
   var MILLISECONDS_PER_FRAME = 1000 / 10,
-    ENTITY_SPAWN_RATE = 0.05;
+    ENTITY_SPAWN_RATE = 0.05,
+    ENEMY_VELOCITY = 10,
+    PROJECTILE_VELOCITY = 10,
+    PLAYER_VELOCITY = 10;
 
   var enemies = [];
   var projectiles = [];
@@ -43,16 +96,16 @@ function sidescrollerGenerator(canvas) {
     game.keyboard = function(key) {
       switch(key) {
         case 'ArrowUp':
-        player.y -= 10;
+        player.y -= PLAYER_VELOCITY;
         break;
         case 'ArrowDown':
-        player.y += 10;
+        player.y += PLAYER_VELOCITY;
         break;
         case 'ArrowLeft':
-        player.x -= 10;
+        player.x -= PLAYER_VELOCITY;
         break;
         case 'ArrowRight':
-        player.x += 10;
+        player.x += PLAYER_VELOCITY;
         break;
         case 'Space':
         spawnProjectiles();
@@ -133,7 +186,7 @@ function sidescrollerGenerator(canvas) {
       return {
         x: x,
         y: y,
-        dx: -10,
+        dx: -ENEMY_VELOCITY,
         dy: 0,
         collision: false
       };
@@ -143,7 +196,7 @@ function sidescrollerGenerator(canvas) {
       return {
         x: entity.x,
         y: entity.y,
-        dx: 10,
+        dx: PROJECTILE_VELOCITY,
         dy: 0,
         collision: false
       };
@@ -207,6 +260,21 @@ function sidescrollerGenerator(canvas) {
     // Draw the border
     ctx.rect(0, 0, width - 1, height - 1);
     ctx.stroke();
+  }
+
+  game.development = {
+    updateSpawnRate: function (newSpawnRate) {
+      ENTITY_SPAWN_RATE = newSpawnRate;
+    },
+    updateEnemyVelocity: function (newEnemyVelocity) {
+      ENEMY_VELOCITY = newEnemyVelocity;
+    },
+    updateProjectileVelocity: function (newProjectileVelocity) {
+      PROJECTILE_VELOCITY = newProjectileVelocity;
+    },
+    updatePlayerVelocity: function (newPlayerVelocity) {
+      PLAYER_VELOCITY = newPlayerVelocity;
+    }
   }
 
   return game;
