@@ -27,18 +27,38 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   enemyVelocityTextfield.oninput = function (e) {
-    enemySpawnRateSlider.value = enemyVelocityTextfield.value;
+    enemyVelocitySlider.value = enemyVelocityTextfield.value;
     g.development.updateEnemyVelocity(parseFloat(enemyVelocityTextfield.value));
   }
 
   projectileVelocitySlider.oninput = function (e) {
-    enemySpawnRateTextfield.value = enemySpawnRateSlider.value;
-    g.development.updateProjectileVelocity(parseFloat(enemySpawnRateSlider.value));
+    projectileVelocityTextfield.value = projectileVelocitySlider.value;
+    g.development.updateProjectileVelocity(parseFloat(projectileVelocitySlider.value));
   };
 
   projectileVelocityTextfield.oninput = function (e) {
     projectileVelocitySlider.value = projectileVelocityTextfield.value;
     g.development.updateProjectileVelocity(parseFloat(projectileVelocityTextfield.value));
+  }
+
+  projectileSpawnCountSlider.oninput = function (e) {
+    projectileSpawnCountTextfield.value = projectileSpawnCountSlider.value;
+    g.development.updateProjectileSpawnCount(parseFloat(projectileSpawnCountSlider.value));
+  };
+
+  projectileSpawnCountTextfield.oninput = function (e) {
+    projectileSpawnCountSlider.value = projectileSpawnCountTextfield.value;
+    g.development.updateProjectileSpawnCount(parseFloat(projectileSpawnCountTextfield.value));
+  }
+
+  projectileArcSlider.oninput = function (e) {
+    projectileArcTextfield.value = projectileArcSlider.value;
+    g.development.updateProjectileArc(parseFloat(projectileArcSlider.value));
+  };
+
+  projectileArcTextfield.oninput = function (e) {
+    projectileArcSlider.value = projectileArcTextfield.value;
+    g.development.updateProjectileArc(parseFloat(projectileArcTextfield.value));
   }
 
   playerVelocitySlider.oninput = function (e) {
@@ -68,7 +88,9 @@ function sidescrollerGenerator(canvas) {
     ENTITY_SPAWN_RATE = 0.05,
     ENEMY_VELOCITY = 10,
     PROJECTILE_VELOCITY = 10,
-    PLAYER_VELOCITY = 10;
+    PLAYER_VELOCITY = 10,
+    PROJECTILE_SPAWN_COUNT = 1,
+    PROJECTILE_ARC = 180;
 
   var enemies = [];
   var projectiles = [];
@@ -96,20 +118,20 @@ function sidescrollerGenerator(canvas) {
     game.keyboard = function(key) {
       switch(key) {
         case 'ArrowUp':
-        player.y -= PLAYER_VELOCITY;
-        break;
+          player.y -= PLAYER_VELOCITY;
+          break;
         case 'ArrowDown':
-        player.y += PLAYER_VELOCITY;
-        break;
+          player.y += PLAYER_VELOCITY;
+          break;
         case 'ArrowLeft':
-        player.x -= PLAYER_VELOCITY;
-        break;
+          player.x -= PLAYER_VELOCITY;
+          break;
         case 'ArrowRight':
-        player.x += PLAYER_VELOCITY;
-        break;
+          player.x += PLAYER_VELOCITY;
+          break;
         case 'Space':
-        spawnProjectiles();
-        break;
+          spawnProjectiles();
+          break;
       }
     };
 
@@ -179,7 +201,8 @@ function sidescrollerGenerator(canvas) {
     }
 
     function spawnProjectiles() {
-      projectiles.push(generateProjectile(player));
+      //projectiles.push(generateProjectile(player));
+      projectiles = projectiles.concat(generateProjectiles(player));
     }
 
     function generateEnemy(x, y) {
@@ -192,14 +215,28 @@ function sidescrollerGenerator(canvas) {
       };
     }
 
-    function generateProjectile(entity) {
-      return {
-        x: entity.x,
-        y: entity.y,
-        dx: PROJECTILE_VELOCITY,
-        dy: 0,
-        collision: false
-      };
+    function generateProjectiles(entity) {
+      var arcDegrees = PROJECTILE_ARC / PROJECTILE_SPAWN_COUNT;
+
+      var newProjectiles = []
+      for (var count = 0; count < PROJECTILE_SPAWN_COUNT; count++) {
+        var degrees = 90 - (((180 - PROJECTILE_ARC) / 2) + arcDegrees * count + (arcDegrees / 2));
+        newProjectiles.push({
+          x: entity.x,
+          y: entity.y,
+          dx: Math.cos(degrees * Math.PI / 180) * PROJECTILE_VELOCITY,
+          dy: Math.sin(degrees * Math.PI / 180) * PROJECTILE_VELOCITY
+        });
+      }
+
+      // return {
+        // x: entity.x,
+        // y: entity.y,
+        // dx: PROJECTILE_VELOCITY,
+        // dy: 0,
+        // collision: false
+      // };
+      return newProjectiles;
     }
   }
 
@@ -271,6 +308,12 @@ function sidescrollerGenerator(canvas) {
     },
     updateProjectileVelocity: function (newProjectileVelocity) {
       PROJECTILE_VELOCITY = newProjectileVelocity;
+    },
+    updateProjectileSpawnCount: function (newProjectileSpawnCount) {
+      PROJECTILE_SPAWN_COUNT = newProjectileSpawnCount;
+    },
+    updateProjectileArc: function (newProjectileArc) {
+      PROJECTILE_ARC = newProjectileArc;
     },
     updatePlayerVelocity: function (newPlayerVelocity) {
       PLAYER_VELOCITY = newPlayerVelocity;
