@@ -3,7 +3,8 @@ var g;
 document.addEventListener('DOMContentLoaded', function () {
   g = sidescrollerGenerator(document.getElementById('game'));
 
-  g.width(800).height(200).render();
+  g.width(800).height(200);
+  g.start();
 });
 
 function sidescrollerGenerator(canvas) {
@@ -11,7 +12,8 @@ function sidescrollerGenerator(canvas) {
 
   var ctx = canvas.getContext('2d'),
     width = 0,
-    height = 0;
+    height = 0,
+    MILLISECONDS_PER_FRAME = 1000 / 10;
 
   var entities = [];
 
@@ -23,6 +25,44 @@ function sidescrollerGenerator(canvas) {
   var game = function () {
     width = 0;
     height = 0;
+  }
+
+  game.start = function() {
+    setInterval(function () {
+      updateEntities();
+      spawnEntities();
+      game.render();
+      console.log('Frame!');
+    }, MILLISECONDS_PER_FRAME);
+
+    function updateEntities() {
+      entities = entities.map(function (e) {
+        return {
+          x: e.x + e.dx,
+          y: e.y + e.dy,
+          dx: e.dx,
+          dy: e.dy
+        };
+      }).filter(function (e) {
+        return e.x > 0;
+      });
+    }
+
+    function spawnEntities() {
+      if (Math.random() < 0.3) {
+        entities.push(generateEntity(width - 10,
+                                     Math.random() * height));
+      }
+    }
+
+    function generateEntity(x, y) {
+      return {
+        x: x,
+        y: y,
+        dx: -10,
+        dy: 0
+      };
+    }
   }
 
   game.width = function(newWidth) {
@@ -59,20 +99,31 @@ function sidescrollerGenerator(canvas) {
   };
 
   game.render = function() {
-    ctx.fillStyle = 'white';
+    // Draw the background
+    ctx.fillStyle = 'lightblue';
     ctx.fillRect(0, 0, width, height);
 
+    // Draw the player
     ctx.beginPath();
-
     ctx.arc(player.x, player.y, 10, 0, 2 * Math.PI);
-
     ctx.fillStyle = 'green';
     ctx.fill();
-
-    ctx.lineWidth = 5;
+    ctx.lineWidth = 3;
     ctx.strokeStyle = 'black';
     ctx.stroke();
 
+    for (var entityIndex in entities) {
+      var entity = entities[entityIndex];
+      ctx.beginPath();
+      ctx.arc(entity.x, entity.y, 10, 0, 2 * Math.PI);
+      ctx.fillStyle = 'red';
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'black';
+      ctx.stroke();
+    }
+
+    // Draw the border
     ctx.rect(0, 0, width - 1, height - 1);
     ctx.stroke();
   }
