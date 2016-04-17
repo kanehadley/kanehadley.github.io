@@ -4,6 +4,19 @@
 
 */
 
+
+var g;
+
+document.addEventListener('DOMContentLoaded', function () {
+  g = sliderGenerator(document.getElementById('game'));
+  i = new Image();
+  i.onload = function () {
+    g.width(300).height(300).load(i);
+    g.render();
+  };
+  i.src = 'example.jpg';
+});
+
 function sliderGenerator(canvas) {
   'use strict';
   var image, mapping, emptyTile;
@@ -197,3 +210,34 @@ function sliderGenerator(canvas) {
 
     return game;
   }
+
+
+  window.onload = function () {
+    var fileInput = document.getElementById('sliderImageInput');
+
+    fileInput.addEventListener('change', function(e) {
+      // Put the rest of the demo code here.
+      var file = fileInput.files[0];
+      var imageType = /image.*/;
+
+
+      if (file.type.match(imageType)) {
+        var reader = new FileReader();
+
+        reader.onload = function(e) {
+          // Create a new image.
+          var img = new Image();
+          // Set the img src property using the data URL.
+          img.src = reader.result;
+
+          g.load(img);
+
+          g.render();
+        }
+
+        reader.readAsDataURL(file);
+      } else {
+        fileDisplayArea.innerHTML = "File not supported!";
+      }
+    });
+  };
