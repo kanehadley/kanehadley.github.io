@@ -3,6 +3,7 @@
  */
 
 var g;
+var playerDead = false;
 
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -188,6 +189,15 @@ function sidescrollerGenerator(canvas) {
           collision: distances.length > 0 ? true : false
         }
       });
+
+      if (enemies.map(function(e) {
+        return Math.sqrt(Math.pow(player.x - e.x, 2) + Math.pow(player.y - e.y, 2));
+      }).filter(function (d) {
+        return d <= (10 + 10);
+      }).length > 1) {
+        playerDead = true;
+      }
+
     }
 
     /**
@@ -305,13 +315,15 @@ function sidescrollerGenerator(canvas) {
     ctx.fillRect(0, 0, width, height);
 
     // Draw the player.
-    ctx.beginPath();
-    ctx.arc(player.x, player.y, 10, 0, 2 * Math.PI);
-    ctx.fillStyle = 'green';
-    ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = 'black';
-    ctx.stroke();
+    if (false === playerDead) {
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, 10, 0, 2 * Math.PI);
+      ctx.fillStyle = 'green';
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'black';
+      ctx.stroke();
+    }
 
     // Draw the enemy circles.
     for (var entityIndex in enemies) {
