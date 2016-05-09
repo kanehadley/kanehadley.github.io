@@ -77,6 +77,37 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             };
 
+            var flipButton = document.getElementById('flip-button');
+            flipButton.onclick = function (e) {
+                var tmpCanvas = document.createElement('canvas');
+                tmpCanvas.width = 500;
+                tmpCanvas.height = 500;
+                var tmpCtx = tmpCanvas.getContext('2d');
+                tmpCtx.drawImage(canvas, 0, 0, 500, 500);
+
+                ctx.clearRect(0, 0, 500, 500);
+
+                var flipImage = new Image();
+                flipImage.onload = function () {
+                    ctx.drawImage(flipImage, 0, 400, flipImage.width, flipImage.height);
+
+                    ctx.save();
+                    ctx.translate(500, 500);
+                    ctx.rotate(Math.PI);
+                    ctx.drawImage(tmpCanvas, 0, 0, 500, 500, 0, 0, 250, 250);
+                    //ctx.strokeStyle = 'black';
+                    //ctx.strokeRect(0, 0, 250, 250);
+                    ctx.restore();
+                    flipImage.onload = function () {
+                        ctx.drawImage(flipImage, 0, 0, flipImage.width, flipImage.height);
+                    };
+                    flipImage.src = 'images/ahhhhh.png';
+                };
+                flipImage.src = 'images/flip.png';
+
+            };
+
+
             tmpEndGoalImage = document.createElement('img');
             tmpEndGoalImage.onload = function () {
                 endGoalCtx.drawImage(tmpEndGoalImage, 0, 0, 500, 500);
