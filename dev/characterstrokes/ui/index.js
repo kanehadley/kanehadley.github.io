@@ -66,8 +66,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
             var classifyButton = document.getElementById('classify-button');
             classifyButton.onclick = function (e) {
-                var match = classify(W, [b], generateDownsampledImage(canvas));
-                $("#message")[0].innerHTML = "Prediction: " + mapping[match] + "<br/>Should be: " + targetName + '_' + (currentIndex < 10 ? '0' + currentIndex : currentIndex) + '.png';
+                var downsampledImageSample = generateDownsampledImage(canvas);
+                var match = classify(W, [b], downsampledImageSample);
+                var confidenceValue = softmax(matrixAdd(matrixMultiply(downsampledImageSample, W), [b]))[0][match];
+                $("#message")[0].innerHTML = "Prediction: " + mapping[match] + " with " + (confidenceValue * 100) + "% confidence.<br/>Should be: " + targetName + '_' + (currentIndex < 10 ? '0' + currentIndex : currentIndex) + '.png';
             };
 
             var nextButton = document.getElementById('next-button');
