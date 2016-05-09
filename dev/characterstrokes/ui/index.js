@@ -39,6 +39,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 currentIndex = 0;
                 targetName = e.target.value;
 
+                ctx.clearRect(0, 0, 500, 500);
+
             };
             targetName = Object.keys(counts)[0];
 
