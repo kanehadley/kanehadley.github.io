@@ -24,6 +24,24 @@ document.addEventListener('DOMContentLoaded', function () {
             mapping = data.class_map;
             counts = data.count_map;
 
+            var selector = $('#character-selector')[0];
+            Object.keys(counts).forEach(function (d) {
+                selector.options[selector.options.length] = new Option(d, d, false, false);
+            });
+            selector.onchange = function (e) {
+                var imageFileName = e.target.value + '_00.png';
+
+                var goalImageFileName = e.target.value + '_' + (counts[e.target.value] - 1 < 10 ? '0' + (counts[e.target.value] - 1) : counts[e.target.value] - 1) + '.png';
+
+                tmpEndGoalImage.src = 'images/' + goalImageFileName;
+                tmpCurrentTargetImage.src = 'images/' + imageFileName;
+
+                currentIndex = 0;
+                targetName = e.target.value;
+
+            };
+            targetName = Object.keys(counts)[0];
+
             canvas.onmousedown = function (e) {
                 drawing = true;
             };
@@ -63,13 +81,14 @@ document.addEventListener('DOMContentLoaded', function () {
             tmpEndGoalImage.onload = function () {
                 endGoalCtx.drawImage(tmpEndGoalImage, 0, 0, 500, 500);
             };
-            tmpEndGoalImage.src = 'images/traditional_dragon_15.png';
+            tmpEndGoalImage.src = 'images/' + targetName + '_' + (counts[targetName] - 1 < 10 ? '0' + (counts[targetName] - 1) : counts[targetName] - 1) + '.png';
 
             tmpCurrentTargetImage = document.createElement('img');
             tmpCurrentTargetImage.onload = function () {
                 currentTargetCtx.drawImage(tmpCurrentTargetImage, 0, 0, 500, 500);
             };
             tmpCurrentTargetImage.src = 'images/traditional_dragon_00.png';
+            tmpCurrentTargetImage.src = 'images/' + targetName + '_00.png';
         }
     });
 });
