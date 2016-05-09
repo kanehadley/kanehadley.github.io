@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 if (drawing) {
                     ctx.beginPath();
-                    ctx.arc(mouseX, mouseY, 4, 0, 2 * Math.PI);
+                    ctx.arc(mouseX, mouseY, 8, 0, 2 * Math.PI);
                     ctx.fillStyle = 'black';
                     ctx.fill();
                 }
@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function () {
             var classifyButton = document.getElementById('classify-button');
             classifyButton.onclick = function (e) {
                 var match = classify(W, [b], generateDownsampledImage(canvas));
-                $("#message")[0].textContent = "Prediction: " + mapping[match];
+                $("#message")[0].innerHTML = "Prediction: " + mapping[match] + "<br/>Should be: " + targetName + '_' + (currentIndex < 10 ? '0' + currentIndex : currentIndex) + '.png';
             };
 
             var nextButton = document.getElementById('next-button');
