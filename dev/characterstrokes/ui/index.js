@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 var downsampledImageSample = generateDownsampledImage(canvas);
                 var match = classify(W, [b], downsampledImageSample);
                 var confidenceValue = softmax(matrixAdd(matrixMultiply(downsampledImageSample, W), [b]))[0][match];
-                $("#message")[0].innerHTML = "Prediction: " + mapping[match] + " with " + (confidenceValue * 100) + "% confidence.<br/>Should be: " + targetName + '_' + (currentIndex < 10 ? '0' + currentIndex : currentIndex) + '.png';
+                $("#message")[0].innerHTML = "Prediction: " + mapping[match] + " with " + (confidenceValue * 100).toFixed(2) + "% confidence.<br/>Should be: " + targetName + '_' + (currentIndex < 10 ? '0' + currentIndex : currentIndex) + '.png';
             };
 
             var nextButton = document.getElementById('next-button');
