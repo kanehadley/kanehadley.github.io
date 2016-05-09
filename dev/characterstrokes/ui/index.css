@@ -1,3 +1,7 @@
 #sketchpad {
         border-style: solid;
 }
+
+#message {
+        font-size: 70;
+}

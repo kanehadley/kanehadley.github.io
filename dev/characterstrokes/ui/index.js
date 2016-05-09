@@ -1,4 +1,4 @@
-var canvas, ctx, W, b;
+var canvas, ctx, W, b, mapping;
 var drawing = false;
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
             W = reshape(data.W, data.W_rows, data.W_columns);
             b = data.b;
+
+            mapping = data.class_map;
 
             canvas.onmousedown = function (e) {
                 drawing = true;
@@ -29,6 +31,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     ctx.fillStyle = 'black';
                     ctx.fill();
                 }
+            };
+
+            classifyButton = document.getElementById('classify-button');
+            classifyButton.onclick = function (e) {
+                var match = classify(W, [b], generateDownsampledImage(canvas));
+                $("#message")[0].textContent = "Prediction: " + mapping[match];
             };
         }
     });
@@ -107,7 +115,7 @@ function matrixAdd(A, B) {
 }
 
 function classify (W, b, X) {
-    return argmax(softmax(matrixAdd(matrixMultiply(X, W), [b])));
+    return argmax(softmax(matrixAdd(matrixMultiply(X, W), b)));
 }
 
 function softmax (X) {
