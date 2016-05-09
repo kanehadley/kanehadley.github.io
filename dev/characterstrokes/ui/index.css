@@ -5,3 +5,11 @@
 #message {
         font-size: 70;
 }
+
+#end-goal {
+        border-style: solid;
+}
+
+#current-target {
+        border-style: solid;
+}

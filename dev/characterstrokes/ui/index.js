@@ -1,4 +1,8 @@
-var canvas, ctx, W, b, mapping;
+var canvas, ctx, W, b, mapping, counts, endGoalCanvas, currentTargetCanvas,
+    endGoalCtx, currentTargetCtx, tmpEndGoalImage, tmpCurrentTargetImage;
+
+var currentIndex = 0, targetName = 'traditional_dragon';
+
 var drawing = false;
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -8,10 +12,17 @@ document.addEventListener('DOMContentLoaded', function () {
             canvas = document.getElementById('sketchpad');
             ctx = canvas.getContext('2d');
 
+            endGoalCanvas = document.getElementById('end-goal');
+            endGoalCtx = endGoalCanvas.getContext('2d');
+
+            currentTargetCanvas = document.getElementById('current-target');
+            currentTargetCtx = currentTargetCanvas.getContext('2d');
+
             W = reshape(data.W, data.W_rows, data.W_columns);
             b = data.b;
 
             mapping = data.class_map;
+            counts = data.count_map;
 
             canvas.onmousedown = function (e) {
                 drawing = true;
@@ -33,11 +44,32 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             };
 
-            classifyButton = document.getElementById('classify-button');
+            var classifyButton = document.getElementById('classify-button');
             classifyButton.onclick = function (e) {
                 var match = classify(W, [b], generateDownsampledImage(canvas));
                 $("#message")[0].textContent = "Prediction: " + mapping[match];
             };
+
+            var nextButton = document.getElementById('next-button');
+            nextButton.onclick = function (e) {
+                if (currentIndex < counts[targetName] - 1) {
+                    currentIndex += 1;
+                    var imageFileName = targetName + '_' + (currentIndex < 10 ? '0' + currentIndex : currentIndex) + '.png';
+                    tmpCurrentTargetImage.src = 'images/' + imageFileName;
+                }
+            };
+
+            tmpEndGoalImage = document.createElement('img');
+            tmpEndGoalImage.onload = function () {
+                endGoalCtx.drawImage(tmpEndGoalImage, 0, 0, 500, 500);
+            };
+            tmpEndGoalImage.src = 'images/traditional_dragon_15.png';
+
+            tmpCurrentTargetImage = document.createElement('img');
+            tmpCurrentTargetImage.onload = function () {
+                currentTargetCtx.drawImage(tmpCurrentTargetImage, 0, 0, 500, 500);
+            };
+            tmpCurrentTargetImage.src = 'images/traditional_dragon_00.png';
         }
     });
 });
