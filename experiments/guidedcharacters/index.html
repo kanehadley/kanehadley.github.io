@@ -12,13 +12,21 @@
     </select>
     <button id="classify-button">Classify</button>
     <button id="next-button">Next</button>
-    <button id="flip-button">Flip</button>
   </div>
   <div>
-    <canvas id="sketchpad" width="500" height="500"></canvas>
-    <canvas id="downsample" width="28" height="28" style="border-style: solid;"></canvas>
-    <canvas id="end-goal" width="500" height="500"></canvas>
-    <canvas id="current-target" width="500" height="500"></canvas>
+    <div class="panel">
+        <div>Sketchpad</div>
+        <canvas id="sketchpad" width="500" height="500"></canvas>
+    </div>
+    <canvas id="downsample" width="28" height="28" style="border-style: solid; display: none"></canvas>
+    <div class="panel">
+      <div>Next Stroke</div>
+      <canvas id="current-target" width="500" height="500"></canvas>
+    </div>
+    <div class="panel">
+      <div>Goal</div>
+      <canvas id="end-goal" width="500" height="500"></canvas>
+    </div>
   </div>
   <div id="message"></div>
 </body>
