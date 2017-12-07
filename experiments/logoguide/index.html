@@ -8,26 +8,54 @@
 </head>
 <body>
   <div>
-    <select id='character-selector'>
-    </select>
-    <button id="classify-button">Classify</button>
-    <button id="next-button">Next</button>
+
+    <div>
+      <select id='character-selector'>
+      </select>
+      <button id="classify-button">Classify</button>
+      <button id="next-button">Next</button>
+    </div>
+    <div>
+      <div class="panel">
+          <div>Sketchpad</div>
+          <canvas id="sketchpad" width="500" height="500"></canvas>
+      </div>
+      <canvas id="downsample" width="28" height="28" style="border-style: solid; display: none"></canvas>
+      <div class="panel">
+        <div>Next Stroke</div>
+        <canvas id="current-target" width="500" height="500"></canvas>
+      </div>
+      <div class="panel">
+        <div>Goal</div>
+        <canvas id="end-goal" width="500" height="500"></canvas>
+      </div>
+    </div>
+    <div id="message">Please click the classify button for feedback!</div>
   </div>
-  <div>
-    <div class="panel">
-        <div>Sketchpad</div>
-        <canvas id="sketchpad" width="500" height="500"></canvas>
-    </div>
-    <canvas id="downsample" width="28" height="28" style="border-style: solid; display: none"></canvas>
-    <div class="panel">
-      <div>Next Stroke</div>
-      <canvas id="current-target" width="500" height="500"></canvas>
-    </div>
-    <div class="panel">
-      <div>Goal</div>
-      <canvas id="end-goal" width="500" height="500"></canvas>
-    </div>
+
+  <div style="clear:left; margin-left:25%; margin-right:25%">
+    <h1>Instructions:</h1>
+      <p>
+        Instructions on how to use the system.
+      </p>
+    <h1>Description:</h1>
+    <p>
+      LogoGuide is a prototype system to help a user learn how to write
+      Chinese logograms. It does so by breaking the character down in stages
+      in order to learn how to draw the character by each stroke. After
+      drawing a step the user can get feedback by running the trained
+      convolutional neural network in order to see how closely it matches to
+      images that have been trained on.
+
+
+    </p>
+
+    <p>
+        During the <a href="http://futureai.media.mit.edu/">MAS.S63 Cognitive Integration</a> course I presented on the
+      system and future directions as I've outlined here:
+    </p>
+    <a href="http://futureai.media.mit.edu/wp-content/uploads/sites/40/2016/04/Chinese-Character-Assisted-Learning-.pdf">Chinese Character Assisted Learning</a>
+
   </div>
-  <div id="message"></div>
 </body>
 </html>
