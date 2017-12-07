@@ -3,7 +3,8 @@
 }
 
 #message {
-  font-size: 70;
+  font-size: 60;
+  clear: left;
 }
 
 #end-goal {
