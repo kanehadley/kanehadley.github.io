@@ -1,0 +1,25 @@
+<!DOCTYPE HTML5>
+<html>
+<head>
+  <script type="text/javascript" src="index.js"></script>
+  <script type="text/javascript" src="jquery-2.1.4.min.js"></script>
+
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <div>
+    <select id='character-selector'>
+    </select>
+    <button id="classify-button">Classify</button>
+    <button id="next-button">Next</button>
+    <button id="flip-button">Flip</button>
+  </div>
+  <div>
+    <canvas id="sketchpad" width="500" height="500"></canvas>
+    <canvas id="downsample" width="28" height="28" style="border-style: solid;"></canvas>
+    <canvas id="end-goal" width="500" height="500"></canvas>
+    <canvas id="current-target" width="500" height="500"></canvas>
+  </div>
+  <div id="message"></div>
+</body>
+</html>
