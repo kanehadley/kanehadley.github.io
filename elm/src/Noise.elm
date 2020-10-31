@@ -6,7 +6,7 @@ module Noise exposing (..)
 import  Browser
 
 import Html exposing (Html, div, text, button, h1, input)
-import Html.Attributes exposing (style, placeholder, value)
+import Html.Attributes exposing (style, placeholder, value, type_)
 import Html.Events exposing (onClick)
 
 import Random exposing (initialSeed, step)
@@ -82,6 +82,8 @@ type alias Model =
   , sampling2D : Int
   , animate2D : Bool
   , scaling2D : Float
+  , frequency2D : Float
+  , amplitude2D : Float
 
   , eye : Vec3
   , center : Vec3
@@ -135,8 +137,10 @@ init _ =
       , sampling2D = initialSampling
       , animate2D = True
       , scaling2D = 1
+      , frequency2D = 0.5
+      , amplitude2D = 1
 
-      , eye = vec3 2 -5 3
+      , eye = vec3 2 -2 2
       , center = vec3 0 0 0
       , upAxis = vec3 0 1 0
 
@@ -411,6 +415,10 @@ type Msg
   | EyeY Float
   | EyeZ Float
 
+  | NewOffset Float
+  | NewFrequency Float
+  | NewAmplitude Float
+
   | Tick Time.Posix
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -505,11 +513,20 @@ update msg model =
        }, Cmd.none)
 
     EyeX value ->
-      ({ model | eye = Vec3.setX (value + Vec3.getX model.eye) model.eye }, Cmd.none)
+      ({ model | eye = Vec3.setX value model.eye }, Cmd.none)
     EyeY value ->
-      ({ model | eye = Vec3.setY (value + Vec3.getY model.eye) model.eye }, Cmd.none)
+      ({ model | eye = Vec3.setY value model.eye }, Cmd.none)
     EyeZ value ->
-      ({ model | eye = Vec3.setZ (value + Vec3.getZ model.eye) model.eye }, Cmd.none)
+      ({ model | eye = Vec3.setZ value model.eye }, Cmd.none)
+
+    NewOffset value ->
+      ({ model | offset2D = value }, Cmd.none)
+
+    NewFrequency value ->
+      ({ model | frequency2D = value }, Cmd.none)
+
+    NewAmplitude value ->
+      ({ model | amplitude2D = value }, Cmd.none)
 
     Tick newTime ->
       let
@@ -526,7 +543,10 @@ update msg model =
         , offset2D =
             case model.animate2D of
                 True ->
-                  model.offset2D + 0.1
+                  let
+                    dt = model.offset2D - (toFloat <| floor model.offset2D)
+                  in
+                  (toFloat <| modBy 512 (floor model.offset2D)) + dt + 0.1
                 False ->
                   model.offset2D
         }, Cmd.none)
@@ -570,14 +590,14 @@ view model =
     samplingAmount = toFloat model.sampling2D
     --fXY = (\x y -> model.noise2D (x + model.offset2D) (y + model.offset2D))
     fXY = (\x y -> (fPermutationPerlin model.smoothing2D perlinGradients perlinPermutations) (x + model.offset2D) (y + model.offset2D))
-    points = generate2DNoise fXY model.num2DNoisePoints model.sampling2D model.scaling2D
-    arrayPoints = pointsArrayToList <| generate2DArrayNoise fXY model.num2DNoisePoints model.sampling2D 0.5 1
-    arrayPoints2 = pointsArrayToList <| generate2DArrayNoise fXY model.num2DNoisePoints model.sampling2D 2 0.5
-    arrayPoints3 = pointsArrayToList <| generate2DArrayNoise fXY model.num2DNoisePoints model.sampling2D 4 0.25
-    arrayPoints4 = pointsArrayToList <| generate2DArrayNoise fXY model.num2DNoisePoints model.sampling2D 8 0.125
-    arrayPoints5 = pointsArrayToList <| generate2DArrayNoise fXY model.num2DNoisePoints model.sampling2D 16 0.0625
+    points = generate2DNoise fXY model.num2DNoisePoints model.sampling2D model.scaling2D model.frequency2D model.amplitude2D
+    arrayPoints = pointsArrayToList <| generate2DArrayNoise fXY model.num2DNoisePoints model.sampling2D model.frequency2D model.amplitude2D
+    --arrayPoints2 = pointsArrayToList <| generate2DArrayNoise fXY model.num2DNoisePoints model.sampling2D 2 0.5
+    --arrayPoints3 = pointsArrayToList <| generate2DArrayNoise fXY model.num2DNoisePoints model.sampling2D 4 0.25
+    --arrayPoints4 = pointsArrayToList <| generate2DArrayNoise fXY model.num2DNoisePoints model.sampling2D 8 0.125
+    --arrayPoints5 = pointsArrayToList <| generate2DArrayNoise fXY model.num2DNoisePoints model.sampling2D 16 0.0625
 
-    arrayPointsAll = List.foldr sumArrayPointList arrayPoints [arrayPoints2, arrayPoints3, arrayPoints4, arrayPoints5]
+    --arrayPointsAll = List.foldr sumArrayPointList arrayPoints [arrayPoints2, arrayPoints3, arrayPoints4, arrayPoints5]
 
   in
   div
@@ -612,7 +632,15 @@ view model =
     , button [ onClick ToggleAnimate ] [ text "Toggle Animation" ]
     --, text <| List.foldr (++) "" <| List.map (String.fromFloat >> (\x -> ", " ++ x)) <| List.map transform <| List.range 0 (model.sampling * (model.num1DNoisePoints - 1))
     , render1DNoise model
-    ,-} h1 [] [ text "2D Noise" ]
+    ,-} h1 [] [ text "2D Perlin Noise" ]
+    , div [] [ text "Instructions: 2D Perlin noise generator and terrain map." ]
+    , div [] [ text "1) Points determine how many tiles make up the mesh width and height. Sampling determines how frequently we subsample each tile. This makes the total number of points along a mesh edge Points*Sampling." ]
+    , div [] [ text "2) Offset determines how many steps to adjust the X and Y coordinates on the grid for the Perlin Noise function." ]
+    , div [] [ text "3) Frequency determines how quickly we cycle through the Perlin Noise generator to repeat the pattern" ]
+    , div [] [ text "4) Amplitude scales noise generated value." ]
+    , div [] [ text "5) Smoothing determines whether the interpolation should be a linear function (None) or an S shaped curve (Cosine)." ]
+    , div [] [ text "6) Toggle Animation can start or stop the iteration if you would like to manually inspect a certain offset." ]
+    , div [] [ text "7) EyeX, EyeY, and EyeZ control the viewpoint location. The mesh is always centered at the origin (0, 0, 0) along the XY plane. The point determined by (EyeX, EyeY, EyeZ) is where we look at the origin from." ]
     , div []
     [
      div [] 
@@ -628,11 +656,38 @@ view model =
       , button [ onClick Decrease2DSampling ] [ text "-1" ]
       ]
     , div []
-      [ text "Offset "
-      , input [ placeholder "Offset", value <| String.fromFloat model.offset2D ] []
-      , button [ onClick Increase2DOffset ] [ text "+0.2" ]
-      , button [ onClick Decrease2DOffset ] [ text "-0.2" ]
+      [ input 
+          [ type_ "range"
+          , Html.Attributes.min "0"
+          , Html.Attributes.max "512"
+          , Html.Attributes.step "0.1"
+          , Html.Attributes.value <| String.fromFloat <| model.offset2D
+          , Html.Events.onInput (String.toFloat >> Maybe.withDefault 0 >> NewOffset)
+          ] []
+      , text <| (++) "Offset: " <| String.fromFloat <| model.offset2D
       ]
+    , div []
+        [ input 
+            [ type_ "range"
+            , Html.Attributes.min "0"
+            , Html.Attributes.max "3"
+            , Html.Attributes.step "0.1"
+            , Html.Attributes.value <| String.fromFloat <| model.frequency2D
+            , Html.Events.onInput (String.toFloat >> Maybe.withDefault 0 >> NewFrequency)
+            ] []
+        , text <| (++) "Frequency: " <| String.fromFloat <| model.frequency2D
+        ]
+    , div []
+        [ input 
+            [ type_ "range"
+            , Html.Attributes.min "0"
+            , Html.Attributes.max "3"
+            , Html.Attributes.step "0.1"
+            , Html.Attributes.value <| String.fromFloat <| model.amplitude2D
+            , Html.Events.onInput (String.toFloat >> Maybe.withDefault 0 >> NewAmplitude)
+            ] []
+        , text <| (++) "Amplitude: " <| String.fromFloat <| model.amplitude2D
+        ]
     , div []
       [ text "Smoothing "
       , button [ onClick No2DSmoothing ] [ text "None" ]
@@ -653,30 +708,45 @@ view model =
     --    <| List.map (\(x, y) -> (toFloat x / samplingAmount, toFloat y / samplingAmount))
     --    <| generateGridCoordinates (pointCounts*model.sampling2D) (pointCounts*model.sampling2D)
     , div []
-      [ text "EyeX "
-      , input [ placeholder "EyeX", value <| String.fromFloat (Vec3.getX model.eye) ] []
-      , button [ onClick (EyeX 1) ] [ text "+1" ]
-      , button [ onClick (EyeX -1) ] [ text "-1" ]
+      [ input 
+          [ type_ "range"
+          , Html.Attributes.min "-10"
+          , Html.Attributes.max "10"
+          , Html.Attributes.step "0.1"
+          , Html.Attributes.value <| String.fromFloat <| Vec3.getX model.eye
+          , Html.Events.onInput (String.toFloat >> Maybe.withDefault 0 >> EyeX)
+          ] []
+      , text <| (++) "EyeX: " <| String.fromFloat <| Vec3.getX model.eye
       ]
     , div []
-      [ text "EyeY "
-      , input [ placeholder "EyeY", value <| String.fromFloat (Vec3.getY model.eye) ] []
-      , button [ onClick (EyeY 1) ] [ text "+1" ]
-      , button [ onClick (EyeY -1) ] [ text "-1" ]
+      [ input 
+          [ type_ "range"
+          , Html.Attributes.min "-10"
+          , Html.Attributes.max "10"
+          , Html.Attributes.step "0.1"
+          , Html.Attributes.value <| String.fromFloat <| Vec3.getY model.eye
+          , Html.Events.onInput (String.toFloat >> Maybe.withDefault 0 >> EyeY)
+          ] []
+      , text <| (++) "EyeY: " <| String.fromFloat <| Vec3.getY model.eye
       ]
     , div []
-      [ text "EyeZ "
-      , input [ placeholder "EyeZ", value <| String.fromFloat (Vec3.getZ model.eye) ] []
-      , button [ onClick (EyeZ 1) ] [ text "+1" ]
-      , button [ onClick (EyeZ -1) ] [ text "-1" ]
+      [ input 
+          [ type_ "range"
+          , Html.Attributes.min "-10"
+          , Html.Attributes.max "10"
+          , Html.Attributes.step "0.1"
+          , Html.Attributes.value <| String.fromFloat <| Vec3.getZ model.eye
+          , Html.Events.onInput (String.toFloat >> Maybe.withDefault 0 >> EyeZ)
+          ] []
+      , text <| (++) "EyeZ: " <| String.fromFloat <| Vec3.getZ model.eye
       ]
     ,  div [
         style "display" "flex"
       ]
       [
-       render2DGLNoise model.num2DNoisePoints model.sampling2D points
+       render2DGLNoise model.eye model.num2DNoisePoints model.sampling2D points
     , --render2DGLSurface model model.eye model.center model.upAxis
-      render2DGLSurface model.num2DNoisePoints model.sampling2D arrayPoints]
+      render2DGLSurface model.eye model.num2DNoisePoints model.sampling2D arrayPoints]
     ]
     ]
 
@@ -709,7 +779,7 @@ render2DSVGNoise : Model -> Html Msg
 render2DSVGNoise model =
   let
     fXY = (\x y -> (fPermutationPerlin model.smoothing2D perlinGradients perlinPermutations) (x + model.offset2D) (y + model.offset2D))
-    points = generate2DNoise fXY model.num2DNoisePoints model.sampling2D model.scaling2D
+    points = generate2DNoise fXY model.num2DNoisePoints model.sampling2D model.scaling2D model.frequency2D model.amplitude2D
     edgeLength = ((model.width2D - 10) / toFloat (model.num2DNoisePoints * model.sampling2D))
   in
     svg
@@ -774,8 +844,8 @@ test2DSampling =
   2
 
 
-render2DGLNoise : Int -> Int -> List (Float, Float, Float) -> Html Msg
-render2DGLNoise numPoints sampling points =
+render2DGLNoise : Vec3 -> Int -> Int -> List (Float, Float, Float) -> Html Msg
+render2DGLNoise modelEye numPoints sampling points =
   {- 
     The points are a list of (x, y, gradient) values where x \in [0, 1], y \in [0, 1], gradient \in [-1, 1].
     For WebGL the fields must be scaled such that:
@@ -794,7 +864,8 @@ render2DGLNoise numPoints sampling points =
     gradientTransform = (\n -> (n + 1)/2 )
     
     --eye = Mat4.transform (Mat4.makeTranslate (vec3 0 0 (1/ tan(22.5 * pi / 180)))) (vec3 0 0 0)
-    eye = Mat4.transform (Mat4.makeTranslate (vec3 2 -2 2)) (vec3 0 0 0)
+    --eye = Mat4.transform (Mat4.makeTranslate (vec3 2 -2 2)) (vec3 0 0 0)
+    eye = Mat4.transform (Mat4.makeTranslate modelEye) (vec3 0 0 0)
     center = (vec3 0 0 0)
     --up = Mat4.transform (Mat4.makeRotate (pi/100) (vec3 0 0 1)) (vec3 0 1 0)
     up = vec3 0 1 0
@@ -875,8 +946,8 @@ pointsArrayToList points =
 
 
 
-render2DGLSurface : Int -> Int -> List ArrayPoint -> Html Msg
-render2DGLSurface numPoints sampling points =
+render2DGLSurface : Vec3 -> Int -> Int -> List ArrayPoint -> Html Msg
+render2DGLSurface modelEye numPoints sampling points =
   let
     --fXY = (\x y -> (fPermutationPerlin model.smoothing2D perlinGradients perlinPermutations) (x + model.offset2D) (y + model.offset2D))
     --points = generate2DNoise fXY model.num2DNoisePoints model.sampling2D model.scaling2D
@@ -901,7 +972,8 @@ render2DGLSurface numPoints sampling points =
     gradientTransform = (\n -> (n + shift)/(2*shift) ) -->> gradientScale
     
     --eye = Mat4.transform (Mat4.makeTranslate (vec3 0 0 (1/ tan(22.5 * pi / 180)))) (vec3 0 0 0)
-    eye = Mat4.transform (Mat4.makeTranslate (vec3 2 -2 2)) (vec3 0 0 0)
+    --eye = Mat4.transform (Mat4.makeTranslate (vec3 2 -2 2)) (vec3 0 0 0)
+    eye = Mat4.transform (Mat4.makeTranslate modelEye) (vec3 0 0 0)
     --eye = Mat4.transform (Mat4.makeTranslate (vec3 0 0 4)) (vec3 0 0 0)
     center = (vec3 0 0 0)
     --up = Mat4.transform (Mat4.makeRotate (pi/100) (vec3 0 0 1)) (vec3 0 1 0)
@@ -1068,8 +1140,8 @@ type alias Vertex =
 
 
 
-generate2DNoise : (Float -> Float -> Float) -> Int -> Int -> Float -> List (Float, Float, Float)
-generate2DNoise fXY pointCounts sampling scaling =
+generate2DNoise : (Float -> Float -> Float) -> Int -> Int -> Float -> Float -> Float -> List (Float, Float, Float)
+generate2DNoise fXY pointCounts sampling scaling frequency amplitude =
   let
     numPoints = toFloat pointCounts
     samplingAmount = toFloat sampling
@@ -1079,7 +1151,7 @@ generate2DNoise fXY pointCounts sampling scaling =
       |> List.map (\(x, y) ->
           let
             --gradient = ((fXY x y) + 1) * scaling
-            gradient = (fXY (x/samplingAmount) (y/samplingAmount))
+            gradient = amplitude * (fXY (frequency * x/samplingAmount) (frequency * y/samplingAmount))
           in
             (x/(numPoints*samplingAmount), y/(numPoints*samplingAmount), gradient)
           )
