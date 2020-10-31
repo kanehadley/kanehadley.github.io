@@ -693,12 +693,6 @@ view model =
       , button [ onClick No2DSmoothing ] [ text "None" ]
       , button [ onClick Cosine2DSmoothing ] [ text "Cosine" ]
       ]
-    , div []
-      [ text "Scaling "
-      , input [ placeholder "Scaling factor", value <| String.fromFloat model.scaling2D ] []
-      , button [ onClick Increase2DScaling ] [ text "+0.05" ]
-      , button [ onClick Decrease2DScaling ] [ text "-0.05" ]
-      ]
     , button [ onClick Toggle2DAnimate ] [ text "Toggle Animation" ]
     
     --, render2DSVGNoise model
