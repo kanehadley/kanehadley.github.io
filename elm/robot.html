@@ -6759,7 +6759,7 @@ var $author$project$Robot$view = function (model) {
 									]),
 								_List_Nil),
 								$elm$html$Html$text(
-								'Wrist1 ' + $elm$core$String$fromFloat(model.wrist1))
+								'Wrist1 ' + ($elm$core$String$fromFloat(model.wrist1 / $elm$core$Basics$pi) + ' Pi Radians'))
 							])),
 						A2(
 						$elm$html$Html$div,
@@ -6789,7 +6789,7 @@ var $author$project$Robot$view = function (model) {
 									]),
 								_List_Nil),
 								$elm$html$Html$text(
-								'Wrist2 ' + $elm$core$String$fromFloat(model.wrist2))
+								'Wrist2 ' + ($elm$core$String$fromFloat(model.wrist2 / $elm$core$Basics$pi) + ' Pi Radians'))
 							])),
 						A2(
 						$elm$html$Html$div,
@@ -6819,7 +6819,7 @@ var $author$project$Robot$view = function (model) {
 									]),
 								_List_Nil),
 								$elm$html$Html$text(
-								'Knuckle1 ' + $elm$core$String$fromFloat(model.knuckle1))
+								'Knuckle1 ' + ($elm$core$String$fromFloat(model.knuckle1 / $elm$core$Basics$pi) + ' Pi Radians'))
 							])),
 						A2(
 						$elm$html$Html$div,
@@ -6849,7 +6849,21 @@ var $author$project$Robot$view = function (model) {
 									]),
 								_List_Nil),
 								$elm$html$Html$text(
-								'Knuckle2 ' + $elm$core$String$fromFloat(model.knuckle2))
+								'Knuckle2 ' + ($elm$core$String$fromFloat(model.knuckle2 / $elm$core$Basics$pi) + ' Pi Radians'))
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Instructions:')
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Use the sliders to modify each joint angle.')
 							]))
 					]))
 			]));
