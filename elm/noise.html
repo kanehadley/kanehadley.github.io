@@ -8742,7 +8742,6 @@ var $author$project$Noise$update = F2(
 var $author$project$Noise$Cosine2DSmoothing = {$: 'Cosine2DSmoothing'};
 var $author$project$Noise$Decrease2DPoints = {$: 'Decrease2DPoints'};
 var $author$project$Noise$Decrease2DSampling = {$: 'Decrease2DSampling'};
-var $author$project$Noise$Decrease2DScaling = {$: 'Decrease2DScaling'};
 var $author$project$Noise$EyeX = function (a) {
 	return {$: 'EyeX', a: a};
 };
@@ -8754,7 +8753,6 @@ var $author$project$Noise$EyeZ = function (a) {
 };
 var $author$project$Noise$Increase2DPoints = {$: 'Increase2DPoints'};
 var $author$project$Noise$Increase2DSampling = {$: 'Increase2DSampling'};
-var $author$project$Noise$Increase2DScaling = {$: 'Increase2DScaling'};
 var $author$project$Noise$NewAmplitude = function (a) {
 	return {$: 'NewAmplitude', a: a};
 };
@@ -9676,42 +9674,6 @@ var $author$project$Noise$view = function (model) {
 								_List_fromArray(
 									[
 										$elm$html$Html$text('Cosine')
-									]))
-							])),
-						A2(
-						$elm$html$Html$div,
-						_List_Nil,
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Scaling '),
-								A2(
-								$elm$html$Html$input,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$placeholder('Scaling factor'),
-										$elm$html$Html$Attributes$value(
-										$elm$core$String$fromFloat(model.scaling2D))
-									]),
-								_List_Nil),
-								A2(
-								$elm$html$Html$button,
-								_List_fromArray(
-									[
-										$elm$html$Html$Events$onClick($author$project$Noise$Increase2DScaling)
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('+0.05')
-									])),
-								A2(
-								$elm$html$Html$button,
-								_List_fromArray(
-									[
-										$elm$html$Html$Events$onClick($author$project$Noise$Decrease2DScaling)
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('-0.05')
 									]))
 							])),
 						A2(
