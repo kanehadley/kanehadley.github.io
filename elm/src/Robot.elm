@@ -235,7 +235,7 @@ view model =
                 , Html.Attributes.value <| String.fromFloat model.wrist1
                 , Html.Events.onInput (String.toFloat >> Maybe.withDefault 0 >> UpdateJoint Wrist1)
                 ] []
-            , text <| (++) "Wrist1 " <| String.fromFloat model.wrist1
+            , text <| (++) "Wrist1 " <| (++) (String.fromFloat (model.wrist1/pi)) <| " Pi Radians"
             ]
         , div [] 
             [ input 
@@ -246,7 +246,7 @@ view model =
                 , Html.Attributes.value <| String.fromFloat model.wrist2
                 , Html.Events.onInput (String.toFloat >> Maybe.withDefault 0 >> UpdateJoint Wrist2)
                 ] []
-            , text <| (++) "Wrist2 " <| String.fromFloat model.wrist2
+            , text <| (++) "Wrist2 " <| (++) (String.fromFloat (model.wrist2/pi)) <| " Pi Radians"
             ]
         , div [] 
             [ input 
@@ -257,7 +257,7 @@ view model =
                 , Html.Attributes.value <| String.fromFloat model.knuckle1
                 , Html.Events.onInput (String.toFloat >> Maybe.withDefault 0 >> UpdateJoint Knuckle1)
                 ] []
-            , text <| (++) "Knuckle1 " <| String.fromFloat model.knuckle1
+            , text <| (++) "Knuckle1 " <| (++) (String.fromFloat (model.knuckle1/pi)) <| " Pi Radians"
             ]
         , div [] 
             [ input 
@@ -268,8 +268,10 @@ view model =
                 , Html.Attributes.value <| String.fromFloat model.knuckle2
                 , Html.Events.onInput (String.toFloat >> Maybe.withDefault 0 >> UpdateJoint Knuckle2)
                 ] []
-            , text <| (++) "Knuckle2 " <| String.fromFloat model.knuckle2
+            , text <| (++) "Knuckle2 " <| (++) (String.fromFloat (model.knuckle2/pi)) <| " Pi Radians"
             ]
+        , div [] [ text "Instructions:" ]
+        , div [] [ text "Use the sliders to modify each joint angle." ]
       ]
     ]
   
