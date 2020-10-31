@@ -7762,13 +7762,15 @@ var $author$project$Noise$init = function (_v0) {
 		_List_Nil);
 	return _Utils_Tuple2(
 		{
+			amplitude2D: 1,
 			animate: false,
 			animate2D: true,
 			center: A3($elm_explorations$linear_algebra$Math$Vector3$vec3, 0, 0, 0),
 			data1DNoise: domain,
 			data2DNoiseX: domain2DX,
 			data2DNoiseY: domain2DY,
-			eye: A3($elm_explorations$linear_algebra$Math$Vector3$vec3, 2, -5, 3),
+			eye: A3($elm_explorations$linear_algebra$Math$Vector3$vec3, 2, -2, 2),
+			frequency2D: 0.5,
 			height1D: height,
 			height2D: height,
 			noise1DX: $elm$core$Basics$identity,
@@ -8412,8 +8414,8 @@ var $author$project$Noise$generateGridCoordinates = F2(
 				},
 				A2($elm$core$List$range, 0, h - 1)));
 	});
-var $author$project$Noise$generate2DNoise = F4(
-	function (fXY, pointCounts, sampling, scaling) {
+var $author$project$Noise$generate2DNoise = F6(
+	function (fXY, pointCounts, sampling, scaling, frequency, amplitude) {
 		var samplingAmount = sampling;
 		var numPoints = pointCounts;
 		return A2(
@@ -8421,7 +8423,7 @@ var $author$project$Noise$generate2DNoise = F4(
 			function (_v1) {
 				var x = _v1.a;
 				var y = _v1.b;
-				var gradient = A2(fXY, x / samplingAmount, y / samplingAmount);
+				var gradient = amplitude * A2(fXY, (frequency * x) / samplingAmount, (frequency * y) / samplingAmount);
 				return _Utils_Tuple3(x / (numPoints * samplingAmount), y / (numPoints * samplingAmount), gradient);
 			},
 			A2(
@@ -8433,9 +8435,6 @@ var $author$project$Noise$generate2DNoise = F4(
 				},
 				A2($author$project$Noise$generateGridCoordinates, pointCounts * sampling, pointCounts * sampling)));
 	});
-var $elm_explorations$linear_algebra$Math$Vector3$getX = _MJS_v3getX;
-var $elm_explorations$linear_algebra$Math$Vector3$getY = _MJS_v3getY;
-var $elm_explorations$linear_algebra$Math$Vector3$getZ = _MJS_v3getZ;
 var $elm$core$Basics$not = _Basics_not;
 var $elm_explorations$linear_algebra$Math$Vector3$setX = _MJS_v3setX;
 var $elm_explorations$linear_algebra$Math$Vector3$setY = _MJS_v3setY;
@@ -8663,10 +8662,7 @@ var $author$project$Noise$update = F2(
 					_Utils_update(
 						model,
 						{
-							eye: A2(
-								$elm_explorations$linear_algebra$Math$Vector3$setX,
-								value + $elm_explorations$linear_algebra$Math$Vector3$getX(model.eye),
-								model.eye)
+							eye: A2($elm_explorations$linear_algebra$Math$Vector3$setX, value, model.eye)
 						}),
 					$elm$core$Platform$Cmd$none);
 			case 'EyeY':
@@ -8675,10 +8671,7 @@ var $author$project$Noise$update = F2(
 					_Utils_update(
 						model,
 						{
-							eye: A2(
-								$elm_explorations$linear_algebra$Math$Vector3$setY,
-								value + $elm_explorations$linear_algebra$Math$Vector3$getY(model.eye),
-								model.eye)
+							eye: A2($elm_explorations$linear_algebra$Math$Vector3$setY, value, model.eye)
 						}),
 					$elm$core$Platform$Cmd$none);
 			case 'EyeZ':
@@ -8687,11 +8680,29 @@ var $author$project$Noise$update = F2(
 					_Utils_update(
 						model,
 						{
-							eye: A2(
-								$elm_explorations$linear_algebra$Math$Vector3$setZ,
-								value + $elm_explorations$linear_algebra$Math$Vector3$getZ(model.eye),
-								model.eye)
+							eye: A2($elm_explorations$linear_algebra$Math$Vector3$setZ, value, model.eye)
 						}),
+					$elm$core$Platform$Cmd$none);
+			case 'NewOffset':
+				var value = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{offset2D: value}),
+					$elm$core$Platform$Cmd$none);
+			case 'NewFrequency':
+				var value = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{frequency2D: value}),
+					$elm$core$Platform$Cmd$none);
+			case 'NewAmplitude':
+				var value = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{amplitude2D: value}),
 					$elm$core$Platform$Cmd$none);
 			default:
 				var newTime = msg.a;
@@ -8715,7 +8726,11 @@ var $author$project$Noise$update = F2(
 							offset2D: function () {
 								var _v2 = model.animate2D;
 								if (_v2) {
-									return model.offset2D + 0.1;
+									var dt = model.offset2D - $elm$core$Basics$floor(model.offset2D);
+									return (A2(
+										$elm$core$Basics$modBy,
+										512,
+										$elm$core$Basics$floor(model.offset2D)) + dt) + 0.1;
 								} else {
 									return model.offset2D;
 								}
@@ -8725,7 +8740,6 @@ var $author$project$Noise$update = F2(
 		}
 	});
 var $author$project$Noise$Cosine2DSmoothing = {$: 'Cosine2DSmoothing'};
-var $author$project$Noise$Decrease2DOffset = {$: 'Decrease2DOffset'};
 var $author$project$Noise$Decrease2DPoints = {$: 'Decrease2DPoints'};
 var $author$project$Noise$Decrease2DSampling = {$: 'Decrease2DSampling'};
 var $author$project$Noise$Decrease2DScaling = {$: 'Decrease2DScaling'};
@@ -8738,10 +8752,18 @@ var $author$project$Noise$EyeY = function (a) {
 var $author$project$Noise$EyeZ = function (a) {
 	return {$: 'EyeZ', a: a};
 };
-var $author$project$Noise$Increase2DOffset = {$: 'Increase2DOffset'};
 var $author$project$Noise$Increase2DPoints = {$: 'Increase2DPoints'};
 var $author$project$Noise$Increase2DSampling = {$: 'Increase2DSampling'};
 var $author$project$Noise$Increase2DScaling = {$: 'Increase2DScaling'};
+var $author$project$Noise$NewAmplitude = function (a) {
+	return {$: 'NewAmplitude', a: a};
+};
+var $author$project$Noise$NewFrequency = function (a) {
+	return {$: 'NewFrequency', a: a};
+};
+var $author$project$Noise$NewOffset = function (a) {
+	return {$: 'NewOffset', a: a};
+};
 var $author$project$Noise$No2DSmoothing = {$: 'No2DSmoothing'};
 var $author$project$Noise$Toggle2DAnimate = {$: 'Toggle2DAnimate'};
 var $elm$html$Html$button = _VirtualDom_node('button');
@@ -8827,8 +8849,21 @@ var $author$project$Noise$generate2DArrayNoise = F5(
 				},
 				A2($author$project$Noise$generateArrayGridCoordinates, pointCounts * sampling, pointCounts * sampling)));
 	});
+var $elm_explorations$linear_algebra$Math$Vector3$getX = _MJS_v3getX;
+var $elm_explorations$linear_algebra$Math$Vector3$getY = _MJS_v3getY;
+var $elm_explorations$linear_algebra$Math$Vector3$getZ = _MJS_v3getZ;
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$html$Html$input = _VirtualDom_node('input');
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $elm$html$Html$Attributes$stringProperty = F2(
+	function (key, string) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			$elm$json$Json$Encode$string(string));
+	});
+var $elm$html$Html$Attributes$max = $elm$html$Html$Attributes$stringProperty('max');
+var $elm$html$Html$Attributes$min = $elm$html$Html$Attributes$stringProperty('min');
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
 };
@@ -8846,14 +8881,39 @@ var $elm$html$Html$Events$onClick = function (msg) {
 		'click',
 		$elm$json$Json$Decode$succeed(msg));
 };
-var $elm$json$Json$Encode$string = _Json_wrap;
-var $elm$html$Html$Attributes$stringProperty = F2(
-	function (key, string) {
+var $elm$html$Html$Events$alwaysStop = function (x) {
+	return _Utils_Tuple2(x, true);
+};
+var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
+	return {$: 'MayStopPropagation', a: a};
+};
+var $elm$html$Html$Events$stopPropagationOn = F2(
+	function (event, decoder) {
 		return A2(
-			_VirtualDom_property,
-			key,
-			$elm$json$Json$Encode$string(string));
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
 	});
+var $elm$json$Json$Decode$field = _Json_decodeField;
+var $elm$json$Json$Decode$at = F2(
+	function (fields, decoder) {
+		return A3($elm$core$List$foldr, $elm$json$Json$Decode$field, decoder, fields);
+	});
+var $elm$json$Json$Decode$string = _Json_decodeString;
+var $elm$html$Html$Events$targetValue = A2(
+	$elm$json$Json$Decode$at,
+	_List_fromArray(
+		['target', 'value']),
+	$elm$json$Json$Decode$string);
+var $elm$html$Html$Events$onInput = function (tagger) {
+	return A2(
+		$elm$html$Html$Events$stopPropagationOn,
+		'input',
+		A2(
+			$elm$json$Json$Decode$map,
+			$elm$html$Html$Events$alwaysStop,
+			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
+};
 var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
 var $author$project$Noise$pointsArrayToList = function (points) {
 	var rows = $elm$core$Array$length(points) - 1;
@@ -9083,16 +9143,15 @@ var $elm$html$Html$Attributes$width = function (n) {
 		'width',
 		$elm$core$String$fromInt(n));
 };
-var $author$project$Noise$render2DGLNoise = F3(
-	function (numPoints, sampling, points) {
+var $author$project$Noise$render2DGLNoise = F4(
+	function (modelEye, numPoints, sampling, points) {
 		var up = A3($elm_explorations$linear_algebra$Math$Vector3$vec3, 0, 1, 0);
 		var gradientTransform = function (n) {
 			return (n + 1) / 2;
 		};
 		var eye = A2(
 			$elm_explorations$linear_algebra$Math$Matrix4$transform,
-			$elm_explorations$linear_algebra$Math$Matrix4$makeTranslate(
-				A3($elm_explorations$linear_algebra$Math$Vector3$vec3, 2, -2, 2)),
+			$elm_explorations$linear_algebra$Math$Matrix4$makeTranslate(modelEye),
 			A3($elm_explorations$linear_algebra$Math$Vector3$vec3, 0, 0, 0));
 		var edgeScale = 2;
 		var transform = function (n) {
@@ -9255,8 +9314,8 @@ var $author$project$Noise$ridges = F2(
 					},
 					points)));
 	});
-var $author$project$Noise$render2DGLSurface = F3(
-	function (numPoints, sampling, points) {
+var $author$project$Noise$render2DGLSurface = F4(
+	function (modelEye, numPoints, sampling, points) {
 		var up = A3($elm_explorations$linear_algebra$Math$Vector3$vec3, 0, 1, 0);
 		var sign = function (s) {
 			var _v0 = s < 0;
@@ -9275,8 +9334,7 @@ var $author$project$Noise$render2DGLSurface = F3(
 		};
 		var eye = A2(
 			$elm_explorations$linear_algebra$Math$Matrix4$transform,
-			$elm_explorations$linear_algebra$Math$Matrix4$makeTranslate(
-				A3($elm_explorations$linear_algebra$Math$Vector3$vec3, 2, -2, 2)),
+			$elm_explorations$linear_algebra$Math$Matrix4$makeTranslate(modelEye),
 			A3($elm_explorations$linear_algebra$Math$Vector3$vec3, 0, 0, 0));
 		var edgeScale = 2;
 		var transform = function (n) {
@@ -9329,19 +9387,13 @@ var $author$project$Noise$render2DGLSurface = F3(
 					})
 				]));
 	});
-var $author$project$Noise$sumArrayPointList = F2(
-	function (one, two) {
-		return A3(
-			$elm$core$List$map2,
-			F2(
-				function (a, b) {
-					return {downGradient: a.downGradient + b.downGradient, downHeight: a.downHeight + b.downHeight, gradient: a.gradient + b.gradient, height: a.height + b.height, leftGradient: a.leftGradient + b.leftGradient, leftHeight: a.leftHeight + b.leftHeight, rightGradient: a.rightGradient + b.rightGradient, rightHeight: a.rightHeight + b.rightHeight, upGradient: a.upGradient + b.upGradient, upHeight: a.upHeight + b.upHeight, x: a.x, y: a.y};
-				}),
-			one,
-			two);
-	});
+var $elm$html$Html$Attributes$step = function (n) {
+	return A2($elm$html$Html$Attributes$stringProperty, 'step', n);
+};
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
+var $elm$core$String$toFloat = _String_toFloat;
+var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
 var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
 var $author$project$Noise$view = function (model) {
 	var transform = A2(
@@ -9362,23 +9414,9 @@ var $author$project$Noise$view = function (model) {
 				x + model.offset2D,
 				y + model.offset2D);
 		});
-	var points = A4($author$project$Noise$generate2DNoise, fXY, model.num2DNoisePoints, model.sampling2D, model.scaling2D);
-	var arrayPoints5 = $author$project$Noise$pointsArrayToList(
-		A5($author$project$Noise$generate2DArrayNoise, fXY, model.num2DNoisePoints, model.sampling2D, 16, 0.0625));
-	var arrayPoints4 = $author$project$Noise$pointsArrayToList(
-		A5($author$project$Noise$generate2DArrayNoise, fXY, model.num2DNoisePoints, model.sampling2D, 8, 0.125));
-	var arrayPoints3 = $author$project$Noise$pointsArrayToList(
-		A5($author$project$Noise$generate2DArrayNoise, fXY, model.num2DNoisePoints, model.sampling2D, 4, 0.25));
-	var arrayPoints2 = $author$project$Noise$pointsArrayToList(
-		A5($author$project$Noise$generate2DArrayNoise, fXY, model.num2DNoisePoints, model.sampling2D, 2, 0.5));
+	var points = A6($author$project$Noise$generate2DNoise, fXY, model.num2DNoisePoints, model.sampling2D, model.scaling2D, model.frequency2D, model.amplitude2D);
 	var arrayPoints = $author$project$Noise$pointsArrayToList(
-		A5($author$project$Noise$generate2DArrayNoise, fXY, model.num2DNoisePoints, model.sampling2D, 0.5, 1));
-	var arrayPointsAll = A3(
-		$elm$core$List$foldr,
-		$author$project$Noise$sumArrayPointList,
-		arrayPoints,
-		_List_fromArray(
-			[arrayPoints2, arrayPoints3, arrayPoints4, arrayPoints5]));
+		A5($author$project$Noise$generate2DArrayNoise, fXY, model.num2DNoisePoints, model.sampling2D, model.frequency2D, model.amplitude2D));
 	return A2(
 		$elm$html$Html$div,
 		_List_fromArray(
@@ -9394,7 +9432,63 @@ var $author$project$Noise$view = function (model) {
 				_List_Nil,
 				_List_fromArray(
 					[
-						$elm$html$Html$text('2D Noise')
+						$elm$html$Html$text('2D Perlin Noise')
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Instructions: 2D Perlin noise generator and terrain map.')
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('1) Points determine how many tiles make up the mesh width and height. Sampling determines how frequently we subsample each tile. This makes the total number of points along a mesh edge Points*Sampling.')
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('2) Offset determines how many steps to adjust the X and Y coordinates on the grid for the Perlin Noise function.')
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('3) Frequency determines how quickly we cycle through the Perlin Noise generator to repeat the pattern')
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('4) Amplitude scales noise generated value.')
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('5) Smoothing determines whether the interpolation should be a linear function (None) or an S shaped curve (Cosine).')
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('6) Toggle Animation can start or stop the iteration if you would like to manually inspect a certain offset.')
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('7) EyeX, EyeY, and EyeZ control the viewpoint location. The mesh is always centered at the origin (0, 0, 0) along the XY plane. The point determined by (EyeX, EyeY, EyeZ) is where we look at the origin from.')
 					])),
 				A2(
 				$elm$html$Html$div,
@@ -9478,36 +9572,84 @@ var $author$project$Noise$view = function (model) {
 						_List_Nil,
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Offset '),
 								A2(
 								$elm$html$Html$input,
 								_List_fromArray(
 									[
-										$elm$html$Html$Attributes$placeholder('Offset'),
+										$elm$html$Html$Attributes$type_('range'),
+										$elm$html$Html$Attributes$min('0'),
+										$elm$html$Html$Attributes$max('512'),
+										$elm$html$Html$Attributes$step('0.1'),
 										$elm$html$Html$Attributes$value(
-										$elm$core$String$fromFloat(model.offset2D))
+										$elm$core$String$fromFloat(model.offset2D)),
+										$elm$html$Html$Events$onInput(
+										A2(
+											$elm$core$Basics$composeR,
+											$elm$core$String$toFloat,
+											A2(
+												$elm$core$Basics$composeR,
+												$elm$core$Maybe$withDefault(0),
+												$author$project$Noise$NewOffset)))
 									]),
 								_List_Nil),
+								$elm$html$Html$text(
+								'Offset: ' + $elm$core$String$fromFloat(model.offset2D))
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_Nil,
+						_List_fromArray(
+							[
 								A2(
-								$elm$html$Html$button,
+								$elm$html$Html$input,
 								_List_fromArray(
 									[
-										$elm$html$Html$Events$onClick($author$project$Noise$Increase2DOffset)
+										$elm$html$Html$Attributes$type_('range'),
+										$elm$html$Html$Attributes$min('0'),
+										$elm$html$Html$Attributes$max('3'),
+										$elm$html$Html$Attributes$step('0.1'),
+										$elm$html$Html$Attributes$value(
+										$elm$core$String$fromFloat(model.frequency2D)),
+										$elm$html$Html$Events$onInput(
+										A2(
+											$elm$core$Basics$composeR,
+											$elm$core$String$toFloat,
+											A2(
+												$elm$core$Basics$composeR,
+												$elm$core$Maybe$withDefault(0),
+												$author$project$Noise$NewFrequency)))
 									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('+0.2')
-									])),
+								_List_Nil),
+								$elm$html$Html$text(
+								'Frequency: ' + $elm$core$String$fromFloat(model.frequency2D))
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_Nil,
+						_List_fromArray(
+							[
 								A2(
-								$elm$html$Html$button,
+								$elm$html$Html$input,
 								_List_fromArray(
 									[
-										$elm$html$Html$Events$onClick($author$project$Noise$Decrease2DOffset)
+										$elm$html$Html$Attributes$type_('range'),
+										$elm$html$Html$Attributes$min('0'),
+										$elm$html$Html$Attributes$max('3'),
+										$elm$html$Html$Attributes$step('0.1'),
+										$elm$html$Html$Attributes$value(
+										$elm$core$String$fromFloat(model.amplitude2D)),
+										$elm$html$Html$Events$onInput(
+										A2(
+											$elm$core$Basics$composeR,
+											$elm$core$String$toFloat,
+											A2(
+												$elm$core$Basics$composeR,
+												$elm$core$Maybe$withDefault(0),
+												$author$project$Noise$NewAmplitude)))
 									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('-0.2')
-									]))
+								_List_Nil),
+								$elm$html$Html$text(
+								'Amplitude: ' + $elm$core$String$fromFloat(model.amplitude2D))
 							])),
 						A2(
 						$elm$html$Html$div,
@@ -9587,117 +9729,90 @@ var $author$project$Noise$view = function (model) {
 						_List_Nil,
 						_List_fromArray(
 							[
-								$elm$html$Html$text('EyeX '),
 								A2(
 								$elm$html$Html$input,
 								_List_fromArray(
 									[
-										$elm$html$Html$Attributes$placeholder('EyeX'),
+										$elm$html$Html$Attributes$type_('range'),
+										$elm$html$Html$Attributes$min('-10'),
+										$elm$html$Html$Attributes$max('10'),
+										$elm$html$Html$Attributes$step('0.1'),
 										$elm$html$Html$Attributes$value(
 										$elm$core$String$fromFloat(
-											$elm_explorations$linear_algebra$Math$Vector3$getX(model.eye)))
+											$elm_explorations$linear_algebra$Math$Vector3$getX(model.eye))),
+										$elm$html$Html$Events$onInput(
+										A2(
+											$elm$core$Basics$composeR,
+											$elm$core$String$toFloat,
+											A2(
+												$elm$core$Basics$composeR,
+												$elm$core$Maybe$withDefault(0),
+												$author$project$Noise$EyeX)))
 									]),
 								_List_Nil),
-								A2(
-								$elm$html$Html$button,
-								_List_fromArray(
-									[
-										$elm$html$Html$Events$onClick(
-										$author$project$Noise$EyeX(1))
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('+1')
-									])),
-								A2(
-								$elm$html$Html$button,
-								_List_fromArray(
-									[
-										$elm$html$Html$Events$onClick(
-										$author$project$Noise$EyeX(-1))
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('-1')
-									]))
+								$elm$html$Html$text(
+								'EyeX: ' + $elm$core$String$fromFloat(
+									$elm_explorations$linear_algebra$Math$Vector3$getX(model.eye)))
 							])),
 						A2(
 						$elm$html$Html$div,
 						_List_Nil,
 						_List_fromArray(
 							[
-								$elm$html$Html$text('EyeY '),
 								A2(
 								$elm$html$Html$input,
 								_List_fromArray(
 									[
-										$elm$html$Html$Attributes$placeholder('EyeY'),
+										$elm$html$Html$Attributes$type_('range'),
+										$elm$html$Html$Attributes$min('-10'),
+										$elm$html$Html$Attributes$max('10'),
+										$elm$html$Html$Attributes$step('0.1'),
 										$elm$html$Html$Attributes$value(
 										$elm$core$String$fromFloat(
-											$elm_explorations$linear_algebra$Math$Vector3$getY(model.eye)))
+											$elm_explorations$linear_algebra$Math$Vector3$getY(model.eye))),
+										$elm$html$Html$Events$onInput(
+										A2(
+											$elm$core$Basics$composeR,
+											$elm$core$String$toFloat,
+											A2(
+												$elm$core$Basics$composeR,
+												$elm$core$Maybe$withDefault(0),
+												$author$project$Noise$EyeY)))
 									]),
 								_List_Nil),
-								A2(
-								$elm$html$Html$button,
-								_List_fromArray(
-									[
-										$elm$html$Html$Events$onClick(
-										$author$project$Noise$EyeY(1))
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('+1')
-									])),
-								A2(
-								$elm$html$Html$button,
-								_List_fromArray(
-									[
-										$elm$html$Html$Events$onClick(
-										$author$project$Noise$EyeY(-1))
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('-1')
-									]))
+								$elm$html$Html$text(
+								'EyeY: ' + $elm$core$String$fromFloat(
+									$elm_explorations$linear_algebra$Math$Vector3$getY(model.eye)))
 							])),
 						A2(
 						$elm$html$Html$div,
 						_List_Nil,
 						_List_fromArray(
 							[
-								$elm$html$Html$text('EyeZ '),
 								A2(
 								$elm$html$Html$input,
 								_List_fromArray(
 									[
-										$elm$html$Html$Attributes$placeholder('EyeZ'),
+										$elm$html$Html$Attributes$type_('range'),
+										$elm$html$Html$Attributes$min('-10'),
+										$elm$html$Html$Attributes$max('10'),
+										$elm$html$Html$Attributes$step('0.1'),
 										$elm$html$Html$Attributes$value(
 										$elm$core$String$fromFloat(
-											$elm_explorations$linear_algebra$Math$Vector3$getZ(model.eye)))
+											$elm_explorations$linear_algebra$Math$Vector3$getZ(model.eye))),
+										$elm$html$Html$Events$onInput(
+										A2(
+											$elm$core$Basics$composeR,
+											$elm$core$String$toFloat,
+											A2(
+												$elm$core$Basics$composeR,
+												$elm$core$Maybe$withDefault(0),
+												$author$project$Noise$EyeZ)))
 									]),
 								_List_Nil),
-								A2(
-								$elm$html$Html$button,
-								_List_fromArray(
-									[
-										$elm$html$Html$Events$onClick(
-										$author$project$Noise$EyeZ(1))
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('+1')
-									])),
-								A2(
-								$elm$html$Html$button,
-								_List_fromArray(
-									[
-										$elm$html$Html$Events$onClick(
-										$author$project$Noise$EyeZ(-1))
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('-1')
-									]))
+								$elm$html$Html$text(
+								'EyeZ: ' + $elm$core$String$fromFloat(
+									$elm_explorations$linear_algebra$Math$Vector3$getZ(model.eye)))
 							])),
 						A2(
 						$elm$html$Html$div,
@@ -9707,8 +9822,8 @@ var $author$project$Noise$view = function (model) {
 							]),
 						_List_fromArray(
 							[
-								A3($author$project$Noise$render2DGLNoise, model.num2DNoisePoints, model.sampling2D, points),
-								A3($author$project$Noise$render2DGLSurface, model.num2DNoisePoints, model.sampling2D, arrayPoints)
+								A4($author$project$Noise$render2DGLNoise, model.eye, model.num2DNoisePoints, model.sampling2D, points),
+								A4($author$project$Noise$render2DGLSurface, model.eye, model.num2DNoisePoints, model.sampling2D, arrayPoints)
 							]))
 					]))
 			]));

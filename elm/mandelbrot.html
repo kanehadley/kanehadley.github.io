@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body,
+      div:first-child {
+        margin: 0;
+        height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="mandelbrot" width="250" height="250" style="border:1px solid #000000; margin-left: auto; margin-right: auto; display: block;"></canvas>
+    <main></main>
+    <script src="https://unpkg.com/elm-canvas@2.2/elm-canvas.js"></script>
+    <script src="mandelbrot.js"></script>
+    <script>
+      var app = Elm.Mandelbrot.init({ node: document.querySelector("main") });
+
+      //var socket = new WebSocket('wss://echo.websocket.org');
+
+      let c = document.getElementById("mandelbrot"),
+          ctx = c.getContext("2d"),
+          imageData = ctx.createImageData(c.width, c.height);
+
+      app.ports.sendMessage.subscribe(function(message) {
+        //socket.send(message);
+        //console.log(message);
+
+        let pixels = message['pixels']
+        for (let i = 0; i < pixels.length; i++) {
+          imageData.data[4*i] = pixels[i].red;
+          imageData.data[4*i + 1] = pixels[i].green;
+          imageData.data[4*i + 2] = pixels[i].blue;
+          imageData.data[4*i + 3] = pixels[i].alpha;
+        }
+        ctx.putImageData(imageData, 0, 0);
+
+
+      });
+
+
+      //socket.addEventListener("message", function(event) {
+        //app.ports.messageReceiver.send(event.data);
+      //});
+
+      // you can use ports and stuff here
+      
+      
+    </script>
+  </body>
+</html>

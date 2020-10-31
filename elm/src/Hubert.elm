@@ -92,8 +92,12 @@ consume computer memory =
           { memory | consumables = List.filter (\c ->
             case c of
               SugarPile x y ->
-                 x < memory.x + 20 || x > memory.x + 60 || y > memory.y + 20 || y < memory.y - 20
-                 --(x < memory.x + 20 || x > memory.x + 60) --&& (y > memory.y + 20 || y < memory.y - 20)
+                  case memory.orientation of
+                    FaceRight ->
+                      x < memory.x + 20 || x > memory.x + 60 || y > memory.y + 20 || y < memory.y - 20
+                      --(x < memory.x + 20 || x > memory.x + 60) --&& (y > memory.y + 20 || y < memory.y - 20)
+                    FaceLeft ->
+                      x < memory.x - 60 || x > memory.x - 20 || y > memory.y + 20 || y < memory.y - 20
 
               FrostingPool x y ->
                 True
@@ -200,12 +204,13 @@ view computer memory =
   in
   [ renderBorder
   , renderConsumables memory.consumables
+  , words black "Control Hubert with the arrow keys. Eat with the spacebar with the green square as Hubert's focus. Consume all the red sugar piles!" |> move 0 (viewHeight/2 + 20)
   , renderHubert memory computer.time |> move memory.x memory.y
   --, words black ("_" ++ (Set.foldr (++) "" computer.keyboard.keys) ++ "_") |> move 0 (viewHeight/2 + 10)
   --, words black (stateToString memory.state) |> move 0 (viewHeight/2 + 10)
-  , words black (String.fromFloat <| ((92*(sin ((eatingAngle memory.orientation memory.stateTimer)*pi/180 ) )))  ) |> move 0 (viewHeight/2 + 10)
+  --, words black (String.fromFloat <| ((92*(sin ((eatingAngle memory.orientation memory.stateTimer)*pi/180 ) )))  ) |> move 0 (viewHeight/2 + 10)
   , rectangle green 40 40 |> fade 0.5 |> move (memory.x + 20 + xConsumptionOffset) (memory.y - 20 + 20)
-  , circle blue 10 |> move memory.x memory.y
+  --, circle blue 10 |> move memory.x memory.y
   ]
 
 
