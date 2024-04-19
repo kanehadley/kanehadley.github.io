@@ -9,29 +9,24 @@ marblerun = (function(){
     
     let currentTime = Date.now(),
         previousTime = currentTime,
-        drone = {
-            kind: 'drone',
-            x: width * Math.random(),
-            y: height * Math.random(),
-            v: 10, // Pixels per second
-            state: 'chase',
-            energy: 100,
-            burn: -5,
-        },
         drones = [],
         bait = {
             kind: 'bait',
             x: 100,
             y: 100,
+            stateStart: currentTime,
         },
-        obstacles = [];
+        obstacles = [],
+        manualBaitControl = false,
+        showIntents = false,
+        telepathyFocus;
     const drone_size = 10;
     const drone_color = 'rgb(0 0 200 / 50%)';
 
     const bait_size = 10;
     const bait_color = 'rgb(200 0 0)';
     
-    function shout(){
+    function shout() {
         console.log("hello");
     }
     
@@ -43,29 +38,76 @@ marblerun = (function(){
         currentTime = Date.now();
         let dt = currentTime - previousTime;
         
-        drones = drones.map(function(drone) {
+        drones = drones.map(function(drone, index) {
+            let energy = drone.energy + (dt * drone.burn),
+                //dest = (
+                //    'chase' === drone.state ?
+                //    move_entity(drone.x, drone.y, drone.targetX, drone.targetY, drone.v, dt)
+                //    : [drone.x, drone.y]
+                //),
+                dest = move_entity(
+                    drone.x,
+                    drone.y,
+                    drone.targetX,
+                    drone.targetY,
+                    drone.v,
+                    dt
+                ),
+                newPosition = {
+                    x: dest[0],
+                    y: dest[1],
+                },
+                newTarget = {};
             
-            dest = move_entity(drone.x, drone.y, bait.x, bait.y, drone.v, dt);
-            return {
-                ...drone,
-                x: dest[0],
-                y: dest[1],
-            };
-        });
-        
-        if ('chase' === drone.state) {
-            if (((bait.x - drone.x)**2 + (bait.y - drone.y)**2) > (drone.v * drone.v/2)) {
-                dest = move_entity(drone.x, drone.y, bait.x, bait.y, drone.v, dt);    
+            if ('chase' === drone.state) {
+                newTarget = {
+                    targetX: bait.x,
+                    targetY: bait.y,
+                };
+            } else if ('scurry' === drone.state) {
+                let timeCheck = Date.now();
+                if (timeCheck - drone.stateStart > 3000) {
+                    newTarget = {
+                        targetX: width * Math.random(),
+                        targetY: height * Math.random(),
+                        stateStart: timeCheck,
+                    };
+                }
+            } else if ('equilibrate' === drone.state) {
+                let minimumDistance = 50;
+                
+                let vectors = (
+                    drones
+                    .filter((subdrone, subindex) => subindex != index)
+                    .filter((subdrone) => Math.sqrt((drone.x - subdrone.x)**2 + (drone.y - subdrone.y)**2) < minimumDistance)
+                    .map((subdrone) => ({
+                        targetX: drone.x + (drone.x - subdrone.x) + Math.random(),
+                        targetY: drone.y + (drone.y - subdrone.y) + Math.random(),
+                    }))
+                );
+                
+                if (vectors.length === 0) {
+                    let xCentroid = drones.map((subdrone) => subdrone.x).reduce((a,b)=>a+b)/drones.length;
+                    let yCentroid = drones.map((subdrone) => subdrone.y).reduce((a,b)=>a+b)/drones.length;
+                    newTarget = {
+                        targetX: xCentroid,
+                        targetY: yCentroid,
+                    };
+                } else {
+                    newTarget = vectors[0];
+                }
             }
             
-
-            drone = {
+            newDrone = {
                 ...drone,
-                x: dest[0],
-                y: dest[1],
-                energy: drone.energy + (dt * drone.burn),
+                ...newPosition,
+                ...newTarget,
+                energy: energy,
             };
-        }
+            
+            return newDrone;
+        });
+
         draw();
     }
     
@@ -84,6 +126,9 @@ marblerun = (function(){
         //drawDrone(drone.x, drone.y, drone_size);
         drones.forEach((drone) => drawDrone(drone.x, drone.y, drone_size));
         
+        if (showIntents) {drones.forEach(drawIntent);}
+        
+        drawTelepathy();
         //drawGuidelines();
         
     }
@@ -102,6 +147,43 @@ marblerun = (function(){
         //ctx.closePath();
     }
     
+    function drawIntent(drone) {
+        ctx.fillStyle = 'rgb(0 0 0)';
+        ctx.beginPath();
+        ctx.moveTo(projectx(drone.x), projecty(drone.y));
+        ctx.lineTo(projectx(drone.targetX), projecty(drone.targetY));
+        ctx.stroke();
+    }
+    
+    function drawTelepathy() {
+        if (undefined !== telepathyFocus) {
+            let drone = drones[telepathyFocus];
+            
+            //ctx.fillStyle = 'rgb(0 0 0)';
+            //ctx.beginPath();
+            //ctx.moveTo(projectx(drone.x), projecty(drone.y));
+            //ctx.lineTo(projectx(drone.targetX), projecty(drone.targetY));
+            //ctx.stroke();
+            
+            let elem = document.getElementById("telepathy");
+            elem.innerHTML = (
+                "Index: " + (telepathyFocus + 1) + "<BR>" +
+                "X: " + drone.x + "<BR>" +
+                "Y: " + drone.y + "<BR>" +
+                "DestinationX: " + drone.targetX + "<BR>" +
+                "DestinationY: " + drone.targetY + "<BR>" +
+                "Velocity: " + drone.v + "<BR>" +
+                "State: " + drone.state + "<BR>" +
+                "Energy: " + drone.energy + "<BR>" +
+                "Burn: " + drone.burn + "<BR>"
+            );
+        } else {
+            let elem = document.getElementById("telepathy");
+            elem.innerHTML = "";
+        }
+        
+    }
+    
     function drawGuidelines() {
         ctx.beginPath();
         ctx.moveTo(width/2, 0);
@@ -112,11 +194,42 @@ marblerun = (function(){
     }
     
     function mouseclick(e) {
-        bait = {
-            ...bait,
-            x: coordx(e.offsetX),
-            y: coordy(e.offsetY)
-        };
+        if (manualBaitControl) {
+            
+        
+            bait = {
+                ...bait,
+                x: coordx(e.offsetX),
+                y: coordy(e.offsetY)
+            };
+
+            //drones = drones.map(function(drone) {
+            //    let x = (
+            //        'chase' === drone.state ?
+            //        bait.x
+            //        : drone.x
+            //        ),
+            //        y = (
+            //        'chase' === drone.state ?
+            //        bait.y
+            //        : drone.y
+            //        );
+//
+            //    return {
+            //        ...drone,
+            //        targetX: x,
+            //        targetY: y,
+            //    }; 
+            //});
+        } else {
+            telepathyFocus = undefined;
+            drones.forEach(function (drone, index) {
+                if (Math.sqrt((e.offsetX - projectx(drone.x))**2 + (e.offsetY - projecty(drone.y))**2) < drone_size) {
+                    telepathyFocus = index;
+                }
+            });
+        }
+        
     }
     
     function move_entity(srcx, srcy, destx, desty, v, t) {
@@ -139,12 +252,23 @@ marblerun = (function(){
         drones.push({
             x: width * Math.random(),
             y: height * Math.random(),
+            targetX: width * Math.random(),
+            targetY: height * Math.random(),
             v: 10, // Pixels per second
             state: 'chase',
             energy: 100,
             burn: -5,
+            stateStart: Date.now(),
         });
     } 
+    
+    function initializeDevelopment() {
+        spawnDrone();
+        spawnDrone();
+        spawnDrone();
+        
+        mouseclick({offsetX: bait.x, offsetY: bait.y});
+    }
     
     function start() {
         canvas.setAttribute('width', width);
@@ -152,16 +276,35 @@ marblerun = (function(){
         
         canvas.addEventListener('click', mouseclick);
         
-        document.getElementById('toggle-chase').onclick = toggleChase;
+        document.getElementById('toggle-show-intents').onclick = toggleShowIntents;
+        document.getElementById('toggle-bait-control').onclick = toggleBaitControl;
         document.getElementById('spawn-drone').onclick = spawnDrone;
+        
+        document.getElementById('chase-behavior').onclick = activateChase;
+        document.getElementById('scurry-behavior').onclick = activateScurry;
+        document.getElementById('equilibrate-behavior').onclick = activateEquilibrate;
         
         previousTime = Date.now();
         
         //spawnDrone();
         
+        initializeDevelopment();
+        
         setInterval(cycle, 100);
     }
     
+    
+    function activateChase() {
+        drones = drones.map((drone) => ({...drone, state: 'chase', stateStart: Date.now()}));
+    }
+    
+    function activateScurry() {
+        drones = drones.map((drone) => ({...drone, state: 'scurry', stateStart: Date.now()}));
+    }
+    
+    function activateEquilibrate() {
+        drones = drones.map((drone) => ({...drone, state: 'equilibrate', stateStart: Date.now()}));
+    }
     
     function toggleChase() {
         drone = {
@@ -169,6 +312,10 @@ marblerun = (function(){
             state: 'chase' === drone.state ? 'idle' : 'chase'
         };
     }
+    
+    function toggleBaitControl() {manualBaitControl = !manualBaitControl;}
+    
+    function toggleShowIntents() {showIntents = !showIntents;}
     
     return {
         start: start
