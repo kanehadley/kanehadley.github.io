@@ -351,7 +351,7 @@ marblerun = (function () {
         if (environment.manualBaitControl) {
             let [x, y] = pixelsToCoords([e.offsetX, e.offsetY]);
 
-            bait = { ...bait, x: x, y: y };
+            //bait = { ...bait, x: x, y: y };
             
             environment = {
                 ...environment,
@@ -409,10 +409,12 @@ marblerun = (function () {
     }
 
     function spawnDrone() {
-        environment = {
-            ...environment,
-            drones: environment.drones.push(generateDrone())
-        };
+        //environment = {
+        //    ...environment,
+        //    drones: environment.drones.push(generateDrone())
+        //};
+        //
+        environment.drones.push(generateDrone());
     }
 
     function initializeDevelopment() {
@@ -434,7 +436,7 @@ marblerun = (function () {
             toggleShowIntents;
         document.getElementById("toggle-bait-control").onclick =
             toggleBaitControl;
-        //document.getElementById("spawn-drone").onclick = spawnDrone;
+        document.getElementById("spawn-drone").onclick = spawnDrone;
 
         document.getElementById("chase-behavior").onclick = activateChase;
         document.getElementById("scurry-behavior").onclick = activateScurry;
@@ -491,7 +493,7 @@ marblerun = (function () {
     function toggleBaitControl() {
         environment = {
             ...environment,
-            manualBaitControl: !environment.manualBaitControl
+            manualBaitControl: !(environment.manualBaitControl)
         };
     }
 

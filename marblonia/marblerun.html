@@ -3,26 +3,50 @@
     <head>
         <meta charset="UTF-8" />
         <title>Marble Run</title>
+        
+        <link href="assets/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+        <link href="assets/marblerun.css" rel="stylesheet" />
+        
         <style>
             canvas {
                 border: 1px solid black;
                 /*height: 600px;*/
             }
         </style>
+        
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     </head>
     <body>
-        <div><canvas id="marblefield"></canvas></div>
-        <div>
-            <button id="spawn-drone">Spawn Drone</button>
-            <button id="toggle-show-intents">Toggle Show Intents</button>
-            <button id="toggle-bait-control">Toggle Bait Control</button>
-        </div>
-        <div>
-            <button id="chase-behavior">Chase</button>
-            <button id="scurry-behavior">Scurry</button>
-            <button id="equilibrate-behavior">Equilibrate</button>
-        </div>
-        <div id="telepathy"></div>
+        <main>
+            <div class="container">
+                <div class="row">
+                    <!--<div class="col-xs-4"></div>-->
+                    <div class="col-xs-4">
+                        <div><canvas id="marblefield"></canvas></div>
+                        <!--
+                        <div class="form-check form-switch" style="float None;">
+                          <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault">
+                          <label class="form-check-label" for="flexSwitchCheckDefault">Default switch checkbox input</label>
+                        </div>
+                        -->
+                        <div>
+                            <button id="spawn-drone">Spawn Drone</button>
+                            <button id="toggle-show-intents">Toggle Show Intents</button>
+                            <button id="toggle-bait-control">Toggle Bait Control</button>
+                        </div>
+                        <div>
+                            <button id="chase-behavior">Chase</button>
+                            <button id="scurry-behavior">Scurry</button>
+                            <button id="equilibrate-behavior">Equilibrate</button>
+                        </div>
+                        <div id="telepathy"></div>
+                    </div>
+                    <!--<div class="col-xs-4"></div>-->
+                    
+                </div>
+            </div>
+        </main>
     </body>
     <script src="assets/marblerun.js"></script>
 </html>
