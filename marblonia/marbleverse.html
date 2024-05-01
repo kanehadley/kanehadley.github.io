@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>WebGL Demo</title>
+    
+  </head>
+
+  <body>
+    <!--<canvas id="world" width="640" height="480"></canvas>-->
+  </body>
+  
+    <!--
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@<version>/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+            },
+            
+        }
+    </script>
+    -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "/vendor/three/build/three.module.js",
+                "three/examples/jsm/controls/OrbitControls": "/vendor/three/examples/jsm/controls/OrbitControls.js",
+                "three/examples/jsm/libs/stats.module": "/vendor/three/examples/jsm/libs/stats.module.js"
+            }
+        }
+    </script>
+    <script type="module" src="assets/marbleverse.js"></script>
+</html>
