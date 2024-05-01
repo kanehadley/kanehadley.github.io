@@ -283,6 +283,7 @@ let marbleverse = (function () {
             fragmentShader: `
             
             varying vec3 pos;
+            float d;
             uniform float u_time;
             
             void main() {
@@ -296,6 +297,15 @@ let marbleverse = (function () {
                 gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
               } else {
                 gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+              }
+              
+              //d = sqr
+              d = sqrt(pos.x * pos.x + pos.y * pos.y);
+              
+              if (5.0 > d && d > 3.0) {
+                gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+              } else {
+                gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
               }
             }
             `
