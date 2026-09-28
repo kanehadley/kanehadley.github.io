@@ -45,6 +45,8 @@ uniform vec2  u_mouse;
 uniform float u_time;
 uniform float u_frame;
 
+uniform float u_open;       // 0..1, how far it has unfolded; held, not sprung back
+
 #define PI 3.14159265359
 // Optional helper constants for angles
 #define TWO_PI 6.28318530718
@@ -102,8 +104,8 @@ vec2 rotate(vec2 uv, float angle) {
 vec2 scale(vec2 uv, float scale) { return uv / scale; }
 vec2 translate(vec2 uv, vec2 t) { return uv - t; }
 
-
-float openAmount() { return 0.5 - 0.5 * cos(u_time * 0.4); }      // mock: opens and closes
+float openAmount() { return u_open; }
+// float openAmount() { return 0.5 - 0.5 * cos(u_time * 0.4); }      // mock: opens and closes
 float spinAngle()  { return mod(u_time * 0.28, 6.2831853); }      // mock: a slow turn
 
 // Objects
@@ -512,15 +514,51 @@ void main() {
 
   const at = n => gl.getUniformLocation(prog, n);
   const uRes = at('u_resolution'), uMouse = at('u_mouse'),
-        uTime = at('u_time'), uFrame = at('u_frame');
+        uTime = at('u_time'), uFrame = at('u_frame'),
+        uOpen = at('u_open');
 
   // normalised, so it survives a resize and starts centred with no pointer
   const mouse = { x: 0.5, y: 0.5 };
-  canvas.addEventListener('pointermove', e => {
+  let openness = 0.0;     // 0..1, what the shader reads as u_open
+  let dragId = null;      // pointerId of the drag in progress, null when idle
+  let lastX = 0;          // where the dragging pointer was last seen, for the delta
+
+  // Stateful: a drag nudges the opening on from wherever it already is, rather
+  // than jumping to the x you touched. A full-width swipe moves it by this much.
+  const OPEN_PER_WIDTH = 1.0;
+
+  // canvas-relative and clamped, y flipped to gl_FragCoord's bottom-left origin
+  function pos(e) {
     const r = canvas.getBoundingClientRect();
-    mouse.x = (e.clientX - r.left) / r.width;
-    mouse.y = 1 - (e.clientY - r.top) / r.height;   // gl_FragCoord starts bottom-left
+    const clamp = v => (v < 0 ? 0 : v > 1 ? 1 : v);
+    return { x: clamp((e.clientX - r.left) / r.width),
+             y: clamp(1 - (e.clientY - r.top) / r.height) };
+  }
+
+  canvas.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    dragId = e.pointerId;
+    // capture, so a drag that wanders off the canvas keeps being tracked
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* pointer already gone */ }
+    const p = pos(e);
+    mouse.x = p.x; mouse.y = p.y;
+    lastX = p.x;          // only anchor the drag; pressing must not move the opening
   });
+
+  canvas.addEventListener('pointermove', e => {
+    const p = pos(e);
+    mouse.x = p.x; mouse.y = p.y;
+    if (e.pointerId === dragId) {                   // only the pointer that began the drag
+      openness += (p.x - lastX) * OPEN_PER_WIDTH;   // left and right open and close it
+      openness = openness < 0 ? 0 : openness > 1 ? 1 : openness;
+      lastX = p.x;                                  // re-anchor, so a reversal bites at once
+    }
+  });
+
+  // Deliberately no spring back: it keeps whatever value it was released at.
+  const endDrag = e => { if (e.pointerId === dragId) dragId = null; };
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
 
   let t = 0, frame = 0, last = performance.now();
 
@@ -541,6 +579,7 @@ void main() {
     gl.viewport(0, 0, w, h);
     gl.uniform2f(uRes, w, h);
     gl.uniform2f(uMouse, mouse.x * w, mouse.y * h);
+    gl.uniform1f(uOpen, openness);
     gl.uniform1f(uTime, t);
     gl.uniform1f(uFrame, frame);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
