@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Unfolding</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { height: 100dvh; }
+  /* touch-action keeps a drag driving the shader instead of scrolling the page */
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; }
+  #note {
+    position: fixed; inset: 0; display: grid; place-items: center;
+    margin: 0; padding: 2rem; text-align: center; color: #999;
+    font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap;
+  }
+  #note[hidden] { display: none; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<pre id="note" hidden></pre>
+
+
+<script type="x-shader/x-fragment" id="fs">// Everything you can use. Edit anything — it recompiles as you type.
+//
+// This file is the whole shader — nothing is added before it — so the header
+// below is what makes these available:
+//
+//   u_resolution  vec2   canvas size, in pixels
+//   u_time        float   seconds since the page loaded
+//   u_mouse       vec2   cursor position in pixels, origin bottom-left
+//   u_frame       float   frames drawn since the page loaded
+//   gl_FragCoord  vec4   the pixel being drawn; .xy in pixels, origin bottom-left
+//
+// Write your colour to gl_FragColor as vec4(red, green, blue, alpha), 0.0 to 1.0.
+//
+// This is GLSL ES 1.00. For GLSL ES 3.00 add `#version 300 es` above, add
+// `out vec4 fragColor;` below, and write to fragColor rather than gl_FragColor.
+
+precision highp float;      // required: a fragment shader has no default
+
+uniform vec2  u_resolution; // declare the ones you use; spares cost nothing
+uniform vec2  u_mouse;
+uniform float u_time;
+uniform float u_frame;
+
+#define PI 3.14159265359
+// Optional helper constants for angles
+#define TWO_PI 6.28318530718
+#define HALF_PI 1.57079632679
+
+const float CH   = 0.56;    // half size of the block's front face
+const float DC   = 1.12;    // block depth (2 * CH makes it a cube)
+const float ZC   = 0.66;    // the caterpillar's depth inside the block
+const float SMAX = 0.56;    // the deepest the shave can go
+const float ZOOM = 1.15;    // scene units per screen unit
+
+float HEIGHT;        // screen height, in screen units (the width is always 2)
+float PX;            // one pixel, in scene units
+float REGION_HEIGHT;
+// float SHAVE_DEPTH;   // the current shave depth
+// vec2 OBLIQUE_OFFSET; // oblique offset per unit of depth
+
+// ---- look -----------------------------------------------------------------------------
+#define STAGGER       1     // 1 = petals open one after another around the ring
+
+// Helper Functions
+
+float fill(float d) {return 1.0 - smoothstep(-PX, PX, d); }
+
+vec3 over(vec3 col, vec3 c, float m) { return mix(col, c, m); }
+vec3  add(vec3 col, vec3 c, float m)      { return col + c * m; }
+
+float hash12(vec2 p) {
+  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
+float noise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash12(i),                   hash12(i + vec2(1.0, 0.0)), u.x),
+             mix(hash12(i + vec2(0.0, 1.0)), hash12(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+float fbm(vec2 p) {
+  float s = 0.0, a = 0.5;
+  for (int i = 0; i < 4; i++) { s += a * noise(p); p = p * 2.02 + vec2(3.1, 1.7); a *= 0.5; }
+  return s;
+}
+
+vec3 fireRamp(float x) {
+  x = clamp(x, 0.0, 1.0);
+  return vec3(smoothstep(0.0, 0.35, x), 0.85 * smoothstep(0.25, 0.8, x), 0.7 * smoothstep(0.7, 1.0, x));
+}
+
+vec2 rotate(vec2 uv, float angle) {
+  vec2 p = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * uv;
+  return p;
+}
+
+vec2 scale(vec2 uv, float scale) { return uv / scale; }
+vec2 translate(vec2 uv, vec2 t) { return uv - t; }
+
+
+float openAmount() { return 0.5 - 0.5 * cos(u_time * 0.4); }      // mock: opens and closes
+float spinAngle()  { return mod(u_time * 0.28, 6.2831853); }      // mock: a slow turn
+
+// Objects
+// Painter's order for an evenly spaced ring of 8 petals, with no sorting: start with the
+// petal facing most directly away from the viewer, then step outward, alternating sides,
+// nearer side first. Returns (angle around the stem, petal index 0..7) for rank j.
+// If petals ever stop being evenly spaced, sort them in JavaScript instead and pass the
+// result as a uniform array, read with a loop-and-compare.
+vec2 petalAtRank(int j, float spin) {
+  float stp = 6.2831853 / 8.0;
+  float u   = (-1.5707963 - spin - 0.2) / stp;       // fractional petal index at the very back
+  float k0  = floor(u + 0.5);                        // the back-most petal
+  float s   = (k0 - u >= 0.0) ? 1.0 : -1.0;          // which neighbour is nearer the back
+  float m   = floor((float(j) + 1.0) * 0.5);         // 0, 1, 1, 2, 2, 3, 3, 4
+  float k   = (mod(float(j), 2.0) > 0.5) ? k0 - s * m : k0 + s * m;
+  return vec2(k * stp + spin + 0.2, mod(k, 8.0));
+}
+// The flame is a density, not a distance: 0 outside, up to 1 in the hottest core.
+float flameDensity(vec2 q, float t) {
+  vec2 np = vec2(q.x * 4.2, q.y * 2.3 - t * 2.3);                   // rise
+  np.x += 0.8 * (fbm(vec2(q.x * 2.6, q.y * 1.7 - t * 1.5)) - 0.5); // warp
+  float n    = fbm(np);
+  float h    = clamp(q.y, 0.0, 1.0);
+  float wid  = 0.22 * pow(1.0 - h, 0.9) + 0.01;                     // tapering shape
+  float core = 1.0 - abs(q.x) / wid;
+  float v    = core - (n - 0.42) * (0.5 + 2.2 * h);                 // eroded harder with height
+  v *= smoothstep(-0.02, 0.06, q.y);
+  return clamp(v, 0.0, 1.0) * (1.0 - 0.35 * h);
+}
+
+// Signed distance functions
+
+float sdCircle(vec2 uv, float radius) {
+  float sdf = length(uv) - radius;
+  return sdf;
+}
+
+float sdBox(vec2 uv, vec2 wh) {
+  vec2 b = wh * 0.5;
+  vec2 d = abs(uv) - b;
+  return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
+}
+
+float hollow_circle_sdf(vec2 center, vec2 uv) {
+  float thickness = 0.01;
+  float radius = 0.25;
+
+  float sdf = abs(length(uv - center) - radius) - thickness;
+  return sdf;
+}
+
+float _intersection(float a, float b) {
+  return max(a, b);
+}
+
+// exponential
+float smin( float a, float b, float k )
+{
+    k *= 1.0;
+    float r = exp2(-a/k) + exp2(-b/k);
+    return -k*log2(r);
+}
+
+float _smooth_union(float a, float b, float k) {
+  return smin(a, b, k);
+}
+
+float _subtract(float a, float b) {
+  return max(a, -b);
+}
+
+
+float _union(float a, float b) {
+  return min(a, b);
+}
+
+vec2 toDomain(vec2 fragCoord) {
+  // -1.0 to 1.0 for the shorter x-axis.
+  // On a smartphone the width will be shorter than the height hence
+  // we normalize on the smaller x-axis
+  vec2 uv = 2.0 * vec2(
+        (fragCoord.x - 0.5 * u_resolution.x),
+        (fragCoord.y - 0.5 * u_resolution.y)
+  ) / u_resolution.x;
+
+  return uv;
+}
+
+float map(vec2 uv) {
+  float d;
+
+  float c1 = sdCircle(translate(uv, vec2(0.2, 0.0)), 0.25);
+  float c2 = sdCircle(translate(uv, vec2(0.2, 0.2)), 0.25);
+
+
+  float b = sdBox(rotate(uv, HALF_PI/3.0), vec2(0.5, 0.5));
+  // float c2_sdf = circle_sdf(vec2(0.1, 0.0), uv);
+
+  // float c3_sdf = hollow_circle_sdf(vec2(0.0, 0.0), uv);
+
+  // float c4_sdf = circle_sdf(vec2(0.0, 0.0), uv + vec2(sin(u_time), sin(u_time*8.0)));
+
+  // float c5_sdf = circle_sdf(toDomain(u_mouse), uv);
+
+  //float region1 = sdBox(uv, vec2(1.0, 0.2));
+
+  
+
+  d = _union(c1, c2);
+  d = b;
+  // d = region1;
+
+  //d = _union(c1_sdf, c2_sdf);
+  //d = c3_sdf;
+  //d = c3_sdf;
+  //d = _smooth_union(c2_sdf, c3_sdf, 0.012);
+  // d = c4_sdf;
+  // d = c5_sdf;
+  
+  return d;
+}
+
+vec3 _shade_contour(float sdf) {
+  vec3 col;
+
+  col = vec3(fract(sdf)*12.0);
+
+  return col;
+}
+
+vec3 _shade_glow(float sdf) {
+  vec3 col;
+  
+  col = vec3(0.02 / abs(sdf));
+
+  return col;
+}
+
+vec3 _shade_inside(float d) {
+  vec3 col;
+
+  if (d > 0.0) { col = vec3(1.0); }
+  else { col = vec3(0.0); }
+
+  return col;
+}
+
+vec3 _shade_outline(float sdf) {
+  vec3 col;
+
+  col = vec3(smoothstep(0.005, -0.005, abs(sdf) - 0.01));
+
+  return col;
+}
+
+vec3 _shade_raw(float sdf) {
+  vec3 col;
+
+  // Since the grid is [-1.0, 1.0]x[-1.0, 1.0] then at
+  // the center the circle length wouldbe -radius which
+  // we assume a maximum radius of 1 meaning the lowest
+  // value is "-1.0". To ensure that all possible values
+  // are above 0 we multiply by 0.5 so that the lowest
+  // assumed value is -0.5 and then add 0.5 so that all
+  // positions are above 0. Without this scaling then
+  // seeing black pixels offer no information on how far
+  // below 0 the signed distance function for the pixel is.
+  col = vec3(0.5+0.5*sdf);
+
+  return col;
+}
+
+vec3 _shade_smoothstep(float sdf) {
+  vec3 col;
+
+  float mask = smoothstep(0.005, -0.005, sdf);
+
+  col = vec3(mask);
+  vec3 background = vec3(0);
+  vec3 fillColor = vec3(1,0,0);
+
+  col = mix(background, fillColor, mask);
+
+  return col;
+}
+
+vec3 shade(vec2 uv, float sdf) {
+  vec3 col;
+
+  #define DEBUG 0  // 0 off, 1 contour, 2 raw field, 3 quadrant, 4 uv scale, 5 uv domain, 6 origin
+
+  #if DEBUG == 0
+    // col = _shade_inside(sdf);
+    // col = _shade_raw(sdf);
+    // col = _shade_contour(sdf);
+    col = _shade_smoothstep(sdf);
+    // col = _shade_glow(sdf);
+    // col = _shade_outline(sdf);
+  #elif DEBUG == 1
+    col = vec3(fract(sdf*10.0));  // contour bands — is the field smooth? correctly scaled?
+  #elif DEBUG == 2
+    col = vec3(0.5 + 0.5*sdf);  // the raw field
+  #elif DEBUG == 3
+    if (uv.x > 0.0 && uv.y > 0.0) {
+      col = vec3(1.0);
+    } else if (uv.x > 0.0) {
+      col = vec3(0.5);
+    } else if (uv.y > 0.0) {
+      col = vec3(0.5);
+    }
+  #elif DEBUG == 4
+    uv = min(fract(uv*4.0), 1.0-fract(uv*4.0));  // Are my units square?
+    col = vec3(smoothstep(0.02, 0.0, min(uv.x, uv.y)));
+  #elif DEBUG == 5
+    col = vec3(uv, 0.0);  // is my domain what I think it is?
+  #elif DEBUG == 6
+    col = vec3(length(uv));
+  #endif
+
+  return col;
+}
+
+void main() {
+  // Global domain.
+  // uv runs -1.0 to 1.0 across the canvas
+  vec2 RESOLUTION = u_resolution;
+  PX = 2.0 / RESOLUTION.x;
+  HEIGHT = 2.0 * RESOLUTION.y / RESOLUTION.x;
+  REGION_HEIGHT = HEIGHT / 5.0;
+
+  vec2 uv = toDomain(gl_FragCoord.xy);
+  float t = u_time;
+
+  // scene parameters
+  float openness = openAmount();
+  float spin     = spinAngle();
+  float flick    = 0.80 + 0.20 * noise(vec2(t * 6.0, 1.3));   // one flicker for everything the flame lights
+
+  vec3 col = vec3(0.0);
+
+  // ---- 1. background · base ---------------------------------------------------------
+  {
+    vec3 c = mix(vec3(0.085, 0.078, 0.095), vec3(0.03, 0.03, 0.04), clamp(uv.y * 0.5 + 0.25, 0.0, 1.0));
+    col = c;
+  }
+
+  // ---- 5. petals · over · a loop in painter's order -----------------------------------
+  // With an evenly spaced ring, half the petals are always in front, so depth always
+  // crosses zero inside this loop and the center is always drawn.
+  bool centerDone = false;
+  for (int j = 0; j < 8; j++) {
+    vec2  pk   = petalAtRank(j, spin);
+    float phi  = pk.x;                              // angle around the stem
+    float idx  = pk.y;                              // which petal (stable as the ring turns)
+    float sphi = sin(phi);                          // depth: negative is behind the stem
+
+    if (!centerDone && sphi >= 0.0) {
+      centerDone = true;
+      vec2  cs   = vec2(0.0, 0.26);
+      float dist = length(uv - cs);
+
+    //   // ---- 6. calyx · over --------------------------------------------------------------
+    //   {
+    //     float g = length((P - vec2(0.0, 0.015)) / vec2(0.13, 0.055));
+    //     float d = g - 1.0;
+    //     float m = 1.0 - smoothstep(-PX * 12.0, PX * 12.0, d);
+    //     vec3  c = vec3(0.15, 0.29, 0.17) * (0.65 + 0.35 * clamp((P.y + 0.04) / 0.11, 0.0, 1.0));
+    //     TAP(6, d, m, c)
+    //     if (on(6)) col = over(col, c, m);
+    //   }
+
+    //   // ---- 7. halo · add ---------------------------------------------------------------
+    //   {
+    //     float d = dist;
+    //     float m = 0.25 * flick * exp(-dist * 6.5);
+    //     vec3  c = vec3(1.0, 0.50, 0.18);
+    //     TAP(7, d, m, c)
+    //     if (on(7)) col = add(col, c, m);
+    //   }
+
+      // ---- 8. flame · add · a nested pipeline: density, then palette --------------------
+      {
+        float sz = mix(0.28, 0.56, openness);
+        float v  = (dist < 0.75) ? flameDensity((uv - cs) / sz, t) * flick : 0.0;
+        // float d  = 0.5 - v;                          // no distance field: debug shows half density
+        vec3  c  = fireRamp(v);
+    //     TAP(8, d, v, c)
+    //     if (on(8)) col = add(col, c, 1.1);
+        col = add(col, c, 1.1);
+      }
+
+    //   // ---- 9. emitter · over -----------------------------------------------------------
+    //   {
+    //     float d = dist - 0.05;
+    //     float m = fill(d);
+    //     vec3  c = mix(vec3(1.0, 0.72, 0.38), vec3(1.0, 0.97, 0.88),
+    //                   1.0 - smoothstep(0.0, 0.05, length(P - cs - vec2(-0.012, 0.014))))
+    //             * (0.85 + 0.15 * flick);
+    //     TAP(9, d, m, c)
+    //     if (on(9)) col = over(col, c, m);
+    //   }
+    }
+
+    // // ---- 5, continued: this petal -----------------------------------------------------
+    {
+      // opening: staggered around the ring, alternating inner and outer layers
+      float lay = mod(idx, 2.0);
+      float o   = (STAGGER == 1) ? clamp(openness * 1.6 - idx / 8.0 * 0.6, 0.0, 1.0) : openness;
+      o = o * o * (3.0 - 2.0 * o);
+      float th  = mix(-0.20 - 0.07 * lay, 1.20 - 0.24 * lay, o);   // tilt from vertical
+      float r0  = 0.10 * (1.0 - 0.4 * lay);
+      float len = 0.66 * (1.0 - 0.14 * lay);
+      float W   = 0.34;
+
+      // frame: the petal's axes in 3D, projected by dropping z
+      vec3 ax = vec3(sin(th) * cos(phi), cos(th), sin(th) * sphi);  // along the petal
+      vec3 wx = vec3(-sphi, 0.0, cos(phi));                          // across the petal
+      vec3 a3 = ax * len * 0.5;
+      vec3 b3 = wx * W * 0.5;
+      vec3 c3 = vec3(r0 * cos(phi), 0.0, r0 * sphi) + a3;
+      vec2 a  = a3.xy;
+      vec2 b  = b3.xy;
+    //   vec2 ah = normalize(a);
+    //   b += vec2(-ah.y, ah.x) * W * 0.15 * (1.0 - abs(sphi)) * ((sphi >= 0.0) ? 1.0 : -1.0);  // keeps edge-on petals visible
+
+      // field: solve P - center = a*u + b*v, then a tapered ellipse test
+      float det   = a.x * b.y - a.y * b.x;
+      vec2  q     = uv - c3.xy;
+      float u     = (q.x * b.y - q.y * b.x) / det;
+      float v     = (a.x * q.y - a.y * q.x) / det;
+      float taper = max(1.0 - 0.45 * max(u, 0.0), 0.05);
+      float d     = length(vec2(u, v / taper)) - 1.0;
+
+      // shape: the edge width is one pixel, converted into petal units
+      float aa = PX * 1.5 / max(min(length(a), length(b)), 0.01);
+      float m  = 1.0 - smoothstep(-aa, aa, d);
+
+    //   // material and light
+      vec3  n3   = normalize(cross(ax, wx));
+    //   vec3  nv   = (n3.z >= 0.0) ? n3 : -n3;                         // the face we can see
+    //   vec3  P3   = c3 + a3 * u + b3 * v;
+    //   vec3  toF  = F3 - P3;
+    //   float df2  = dot(toF, toF);
+    //   vec3  Lf   = toF * inversesqrt(max(df2, 1e-4));
+    //   float att  = flick / (1.0 + 7.0 * df2);
+      float cup  = 0.68 + 0.32 * sqrt(max(1.0 - v * v, 0.0));
+      float grd  = 0.70 + 0.30 * smoothstep(-1.0, 1.0, u);
+      vec3  base = (n3.z >= 0.0) ? vec3(0.80, 0.25, 0.42) : vec3(0.95, 0.64, 0.58);   // outer or inner face
+      vec3  c = base * (0.28 + 0.72) * cup * grd;
+    //   c += vec3(1.0, 0.55, 0.22) * lambert(nv, Lf) * att * 1.4;                            // flame light
+    //   c += vec3(1.0, 0.40, 0.16) * pow(max(dot(-nv, Lf), 0.0), 1.5) * att * cup * mix(1.0, 0.5, o);  // translucency
+    //   c += vec3(1.0, 0.50, 0.20) * (1.0 - smoothstep(0.0, 0.18, -d)) * (1.0 - o) * 0.55 * flick;     // light through the seams
+    //   c *= mix(0.80, 1.0, 0.5 + 0.5 * sphi);                                                // farther is dimmer
+
+    //   TAPI(5, int(idx + 0.5), d, m, c)
+    //   if (on(5)) col = over(col, c, m);
+      col = over(col, c, m);
+    }
+  }
+
+  // col = vec3(step(0.0, d));       // hard inside/outside
+  gl_FragColor = vec4(col, 1.0);
+}
+</script>
+
+<script>
+(() => {
+  'use strict';
+  const canvas = document.getElementById('c');
+  const note = document.getElementById('note');
+  const fail = t => { note.textContent = t; note.hidden = false; canvas.hidden = true; };
+
+  const OPTS = { antialias: false, powerPreference: 'low-power' };
+  const gl = canvas.getContext('webgl2', OPTS) || canvas.getContext('webgl', OPTS);
+  if (!gl) return fail('This page needs WebGL, which this browser did not provide.');
+
+  const VS = "attribute vec2 p;void main(){gl_Position=vec4(p,0.0,1.0);}";
+  const FS = document.getElementById('fs').textContent;
+
+  function compile(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    return s;
+  }
+
+  let prog;
+  try {
+    prog = gl.createProgram();
+    gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  } catch (e) {
+    // drivers differ, so a shader that built on the desktop can still fail here
+    return fail('This shader did not compile on this device.\n\n' + e.message);
+  }
+
+  gl.useProgram(prog);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const p = gl.getAttribLocation(prog, 'p');
+  gl.enableVertexAttribArray(p);
+  gl.vertexAttribPointer(p, 2, gl.FLOAT, false, 0, 0);
+
+  const at = n => gl.getUniformLocation(prog, n);
+  const uRes = at('u_resolution'), uMouse = at('u_mouse'),
+        uTime = at('u_time'), uFrame = at('u_frame');
+
+  // normalised, so it survives a resize and starts centred with no pointer
+  const mouse = { x: 0.5, y: 0.5 };
+  canvas.addEventListener('pointermove', e => {
+    const r = canvas.getBoundingClientRect();
+    mouse.x = (e.clientX - r.left) / r.width;
+    mouse.y = 1 - (e.clientY - r.top) / r.height;   // gl_FragCoord starts bottom-left
+  });
+
+  let t = 0, frame = 0, last = performance.now();
+
+  function draw(now) {
+    requestAnimationFrame(draw);
+    const dt = Math.min((now - last) / 1000, 0.1);   // clamp, so a stall does not jump time
+    last = now;
+    if (document.hidden) return;                     // do not burn a phone battery
+    t += dt; frame += 1;
+
+    // cap the pixel ratio: a fullscreen fragment shader at native retina is
+    // four times the pixels, enough to stall a heavy shader on a phone
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(1, Math.floor(canvas.clientWidth * dpr));
+    const h = Math.max(1, Math.floor(canvas.clientHeight * dpr));
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+
+    gl.viewport(0, 0, w, h);
+    gl.uniform2f(uRes, w, h);
+    gl.uniform2f(uMouse, mouse.x * w, mouse.y * h);
+    gl.uniform1f(uTime, t);
+    gl.uniform1f(uFrame, frame);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+  requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>
