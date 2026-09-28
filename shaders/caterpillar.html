@@ -594,6 +594,11 @@ void main() {
   const gaze  = { x: 0.5, y: 0.5 };
   let cut = 0.0;          // 0..1; the shader scales it to SHAVE_DEPTH
   let dragId = null;      // pointerId of the drag in progress, null when idle
+  let lastX = 0;          // where the dragging pointer was last seen, for the delta
+
+  // The cut is stateful: a drag nudges it from wherever it already is, rather
+  // than jumping to the x you touched. A full-width swipe moves it by this much.
+  const CUT_PER_WIDTH = 1.0;
 
   // canvas-relative and clamped, y flipped to gl_FragCoord's bottom-left origin
   function pos(e) {
@@ -611,7 +616,7 @@ void main() {
     const p = pos(e);
     mouse.x = gaze.x = p.x;
     mouse.y = gaze.y = p.y;
-    cut = p.x;            // press anywhere on the canvas: the cut goes to that x
+    lastX = p.x;          // only anchor the drag; pressing must not move the cut
   });
 
   canvas.addEventListener('pointermove', e => {
@@ -621,7 +626,11 @@ void main() {
     // gives hover-following on a desktop and press-and-drag on a phone, with no
     // device sniffing.
     gaze.x = p.x; gaze.y = p.y;
-    if (e.pointerId === dragId) cut = p.x;   // only the pointer that began the drag
+    if (e.pointerId === dragId) {            // only the pointer that began the drag
+      cut += (p.x - lastX) * CUT_PER_WIDTH;  // left and right scrub the shave
+      cut = cut < 0 ? 0 : cut > 1 ? 1 : cut;
+      lastX = p.x;                           // re-anchor, so a reversal bites at once
+    }
   });
 
   // Deliberately no spring back: the cut keeps whatever value it was released at.
