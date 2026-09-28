@@ -45,6 +45,9 @@ uniform vec2  u_mouse;
 uniform float u_time;
 uniform float u_frame;
 
+uniform float u_cut;        // 0..1, the shave amount; held, not sprung back
+uniform vec2  u_gaze;       // pixels, origin bottom-left, same space as u_mouse
+
 #define PI 3.14159265359
 // Optional helper constants for angles
 #define TWO_PI 6.28318530718
@@ -77,8 +80,10 @@ vec2 scale(vec2 uv, float scale) { return uv / scale; }
 vec2 translate(vec2 uv, vec2 t) { return uv - t; }
 
 
-float cutAmount()  { return 0.5 - 0.5 * cos(u_time * 0.35); }   // mock: shaves in and out
-vec2  gazePixels() { return u_mouse; }                           // mock: the mouse
+float cutAmount()  { return u_cut; }
+vec2  gazePixels() { return u_gaze; }
+// float cutAmount()  { return 0.5 - 0.5 * cos(u_time * 0.35); }   // mock: shaves in and out
+// vec2  gazePixels() { return u_mouse; }                           // mock: the mouse
 
 // Objects
 // Cavities: center (x, y) on the face, depth of the center, radius.
@@ -495,12 +500,24 @@ void main() {
     vec3  hd = seg(3, t);
     vec2  hc = hd.xy + ZC * OBLIQUE_OFFSET;
     float bl = smoothstep(0.0, 0.025, abs(fract(t * 0.21) - 0.5));        // blink
+    // the gaze, run through the same transform as the pixels
+    vec2  gz = toDomain(gazePixels());
     for (int k = 0; k < 2; k++) {
       float sx    = (k == 0) ? -1.0 : 1.0;
       vec2  E     = hc + vec2(0.034 * sx, 0.020);
       vec2  er    = vec2(0.025, 0.030 * mix(0.08, 1.0, bl));
       float me    = fill((length((uv - E) / er) - 1.0) * min(er.x, er.y));
-      vec2  pupil = E + vec2(0.0, -0.005);   // your eye tracking: offset this toward the gaze target
+
+      // The pupil rides from the eye's centre toward the gaze, stopping at the
+      // inside of the eyelid. Each eye aims from its own centre, so the two
+      // converge when the gaze is close and run parallel when it is far.
+      vec2  toGaze = gz - E;
+      float gdist  = length(toGaze);
+      vec2  gdir   = (gdist > 1e-4) ? toGaze / gdist : vec2(0.0);
+      vec2  travel = max(er - 0.013, 0.0);           // eye radius less the pupil radius
+      float reach  = smoothstep(0.0, 0.10, gdist);   // centred when the gaze sits on the eye
+      vec2  pupil  = E + gdir * travel * reach;
+
       float mp    = fill(length(uv - pupil) - 0.013) * step(0.5, bl);
       // c = mix(c, mix(vec3(0.97, 0.97, 0.94), vec3(0.05, 0.05, 0.07), mp) * (0.45 + 0.55 * (1.0 - shc)), me);
       c = mix(c, mix(vec3(0.97, 0.97, 0.94), vec3(0.05, 0.05, 0.07), mp) * (0.45 + 0.55 * (1.0)), me);
@@ -569,15 +586,48 @@ void main() {
 
   const at = n => gl.getUniformLocation(prog, n);
   const uRes = at('u_resolution'), uMouse = at('u_mouse'),
-        uTime = at('u_time'), uFrame = at('u_frame');
+        uTime = at('u_time'), uFrame = at('u_frame'),
+        uCut  = at('u_cut'),  uGaze  = at('u_gaze');
 
-  // normalised, so it survives a resize and starts centred with no pointer
+  // all normalised 0..1, so they survive a resize and start centred
   const mouse = { x: 0.5, y: 0.5 };
-  canvas.addEventListener('pointermove', e => {
+  const gaze  = { x: 0.5, y: 0.5 };
+  let cut = 0.0;          // 0..1; the shader scales it to SHAVE_DEPTH
+  let dragId = null;      // pointerId of the drag in progress, null when idle
+
+  // canvas-relative and clamped, y flipped to gl_FragCoord's bottom-left origin
+  function pos(e) {
     const r = canvas.getBoundingClientRect();
-    mouse.x = (e.clientX - r.left) / r.width;
-    mouse.y = 1 - (e.clientY - r.top) / r.height;   // gl_FragCoord starts bottom-left
+    const clamp = v => (v < 0 ? 0 : v > 1 ? 1 : v);
+    return { x: clamp((e.clientX - r.left) / r.width),
+             y: clamp(1 - (e.clientY - r.top) / r.height) };
+  }
+
+  canvas.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    dragId = e.pointerId;
+    // capture, so a drag that wanders off the canvas keeps being tracked
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* pointer already gone */ }
+    const p = pos(e);
+    mouse.x = gaze.x = p.x;
+    mouse.y = gaze.y = p.y;
+    cut = p.x;            // press anywhere on the canvas: the cut goes to that x
   });
+
+  canvas.addEventListener('pointermove', e => {
+    const p = pos(e);
+    mouse.x = p.x; mouse.y = p.y;
+    // A touch screen fires pointermove only while pressed, so this single line
+    // gives hover-following on a desktop and press-and-drag on a phone, with no
+    // device sniffing.
+    gaze.x = p.x; gaze.y = p.y;
+    if (e.pointerId === dragId) cut = p.x;   // only the pointer that began the drag
+  });
+
+  // Deliberately no spring back: the cut keeps whatever value it was released at.
+  const endDrag = e => { if (e.pointerId === dragId) dragId = null; };
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
 
   let t = 0, frame = 0, last = performance.now();
 
@@ -598,6 +648,8 @@ void main() {
     gl.viewport(0, 0, w, h);
     gl.uniform2f(uRes, w, h);
     gl.uniform2f(uMouse, mouse.x * w, mouse.y * h);
+    gl.uniform2f(uGaze, gaze.x * w, gaze.y * h);
+    gl.uniform1f(uCut, cut);
     gl.uniform1f(uTime, t);
     gl.uniform1f(uFrame, frame);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
