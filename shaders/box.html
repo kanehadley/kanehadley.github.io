@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Caterpillar</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { height: 100dvh; }
+  /* touch-action keeps a drag driving the shader instead of scrolling the page */
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; }
+  #note {
+    position: fixed; inset: 0; display: grid; place-items: center;
+    margin: 0; padding: 2rem; text-align: center; color: #999;
+    font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap;
+  }
+  #note[hidden] { display: none; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<pre id="note" hidden></pre>
+
+
+<script type="x-shader/x-fragment" id="fs">// Everything you can use. Edit anything — it recompiles as you type.
+//
+// This file is the whole shader — nothing is added before it — so the header
+// below is what makes these available:
+//
+//   u_resolution  vec2   canvas size, in pixels
+//   u_time        float   seconds since the page loaded
+//   u_mouse       vec2   cursor position in pixels, origin bottom-left
+//   u_frame       float   frames drawn since the page loaded
+//   gl_FragCoord  vec4   the pixel being drawn; .xy in pixels, origin bottom-left
+//
+// Write your colour to gl_FragColor as vec4(red, green, blue, alpha), 0.0 to 1.0.
+//
+// This is GLSL ES 1.00. For GLSL ES 3.00 add `#version 300 es` above, add
+// `out vec4 fragColor;` below, and write to fragColor rather than gl_FragColor.
+
+precision highp float;      // required: a fragment shader has no default
+
+uniform vec2  u_resolution; // declare the ones you use; spares cost nothing
+uniform vec2  u_mouse;
+uniform float u_time;
+uniform float u_frame;
+
+uniform float u_cut;        // 0..1, the shave amount; held, not sprung back
+uniform vec2  u_gaze;       // pixels, origin bottom-left, same space as u_mouse
+
+#define PI 3.14159265359
+// Optional helper constants for angles
+#define TWO_PI 6.28318530718
+#define HALF_PI 1.57079632679
+
+const float CH   = 0.56;    // half size of the block's front face
+const float DC   = 1.12;    // block depth (2 * CH makes it a cube)
+const float ZC   = 0.66;    // the caterpillar's depth inside the block
+const float SMAX = 0.56;    // the deepest the shave can go
+const float ZOOM = 1.15;    // scene units per screen unit
+
+float HEIGHT;        // screen height, in screen units (the width is always 2)
+float PX;            // one pixel, in scene units
+float REGION_HEIGHT;
+float SHAVE_DEPTH;   // the current shave depth
+vec2 OBLIQUE_OFFSET; // oblique offset per unit of depth
+
+// Helper Functions
+
+float fill(float d) {return 1.0 - smoothstep(-PX, PX, d); }
+
+vec3 over(vec3 col, vec3 c, float m) { return mix(col, c, m); }
+
+vec2 rotate(vec2 uv, float angle) {
+  vec2 p = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * uv;
+  return p;
+}
+
+vec2 scale(vec2 uv, float scale) { return uv / scale; }
+vec2 translate(vec2 uv, vec2 t) { return uv - t; }
+
+
+float cutAmount()  { return u_cut; }
+vec2  gazePixels() { return u_gaze; }
+// float cutAmount()  { return 0.5 - 0.5 * cos(u_time * 0.35); }   // mock: shaves in and out
+// vec2  gazePixels() { return u_mouse; }                           // mock: the mouse
+
+// Objects
+// Cavities: center (x, y) on the face, depth of the center, radius.
+vec4 cav(int i) {
+  if (i == 0) return vec4( 0.00, -0.02, 0.60, 0.36);    // the caterpillar's room
+  if (i == 1) return vec4(-0.36,  0.33, 0.24, 0.11);
+  if (i == 2) return vec4( 0.37, -0.32, 0.38, 0.12);
+  if (i == 3) return vec4( 0.35,  0.36, 0.50, 0.10);
+  return vec4(-0.37, -0.35, 0.12, 0.10);
+}
+// Caterpillar segments: position on the face, radius. Segment 3 is the head.
+vec3 seg(int j, float t) {
+  float fj = float(j);
+  float r = (j == 3) ? 0.086 : 0.085 - 0.0055 * fj;
+  return vec3(sin(t * 1.3 + fj * 0.8) * 0.009 * fj, -0.29 + 0.117 * fj, r);
+}
+
+// Signed distance functions
+
+float sdCircle(vec2 uv, float radius) {
+  float sdf = length(uv) - radius;
+  return sdf;
+}
+
+float sdBox(vec2 uv, vec2 wh) {
+  vec2 b = wh * 0.5;
+  vec2 d = abs(uv) - b;
+  return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
+}
+
+float hollow_circle_sdf(vec2 center, vec2 uv) {
+  float thickness = 0.01;
+  float radius = 0.25;
+
+  float sdf = abs(length(uv - center) - radius) - thickness;
+  return sdf;
+}
+
+float _intersection(float a, float b) {
+  return max(a, b);
+}
+
+// exponential
+float smin( float a, float b, float k )
+{
+    k *= 1.0;
+    float r = exp2(-a/k) + exp2(-b/k);
+    return -k*log2(r);
+}
+
+float _smooth_union(float a, float b, float k) {
+  return smin(a, b, k);
+}
+
+float _subtract(float a, float b) {
+  return max(a, -b);
+}
+
+
+float _union(float a, float b) {
+  return min(a, b);
+}
+
+vec2 toDomain(vec2 fragCoord) {
+  // -1.0 to 1.0 for the shorter x-axis.
+  // On a smartphone the width will be shorter than the height hence
+  // we normalize on the smaller x-axis
+  vec2 uv = 2.0 * vec2(
+        (fragCoord.x - 0.5 * u_resolution.x),
+        (fragCoord.y - 0.5 * u_resolution.y)
+  ) / u_resolution.x;
+
+  return uv;
+}
+
+float map(vec2 uv) {
+  float d;
+
+  float c1 = sdCircle(translate(uv, vec2(0.2, 0.0)), 0.25);
+  float c2 = sdCircle(translate(uv, vec2(0.2, 0.2)), 0.25);
+
+
+  float b = sdBox(rotate(uv, HALF_PI/3.0), vec2(0.5, 0.5));
+  // float c2_sdf = circle_sdf(vec2(0.1, 0.0), uv);
+
+  // float c3_sdf = hollow_circle_sdf(vec2(0.0, 0.0), uv);
+
+  // float c4_sdf = circle_sdf(vec2(0.0, 0.0), uv + vec2(sin(u_time), sin(u_time*8.0)));
+
+  // float c5_sdf = circle_sdf(toDomain(u_mouse), uv);
+
+  //float region1 = sdBox(uv, vec2(1.0, 0.2));
+
+  
+
+  d = _union(c1, c2);
+  d = b;
+  // d = region1;
+
+  //d = _union(c1_sdf, c2_sdf);
+  //d = c3_sdf;
+  //d = c3_sdf;
+  //d = _smooth_union(c2_sdf, c3_sdf, 0.012);
+  // d = c4_sdf;
+  // d = c5_sdf;
+  
+  return d;
+}
+
+vec3 _shade_contour(float sdf) {
+  vec3 col;
+
+  col = vec3(fract(sdf)*12.0);
+
+  return col;
+}
+
+vec3 _shade_glow(float sdf) {
+  vec3 col;
+  
+  col = vec3(0.02 / abs(sdf));
+
+  return col;
+}
+
+vec3 _shade_inside(float d) {
+  vec3 col;
+
+  if (d > 0.0) { col = vec3(1.0); }
+  else { col = vec3(0.0); }
+
+  return col;
+}
+
+vec3 _shade_outline(float sdf) {
+  vec3 col;
+
+  col = vec3(smoothstep(0.005, -0.005, abs(sdf) - 0.01));
+
+  return col;
+}
+
+vec3 _shade_raw(float sdf) {
+  vec3 col;
+
+  // Since the grid is [-1.0, 1.0]x[-1.0, 1.0] then at
+  // the center the circle length wouldbe -radius which
+  // we assume a maximum radius of 1 meaning the lowest
+  // value is "-1.0". To ensure that all possible values
+  // are above 0 we multiply by 0.5 so that the lowest
+  // assumed value is -0.5 and then add 0.5 so that all
+  // positions are above 0. Without this scaling then
+  // seeing black pixels offer no information on how far
+  // below 0 the signed distance function for the pixel is.
+  col = vec3(0.5+0.5*sdf);
+
+  return col;
+}
+
+vec3 _shade_smoothstep(float sdf) {
+  vec3 col;
+
+  float mask = smoothstep(0.005, -0.005, sdf);
+
+  col = vec3(mask);
+  vec3 background = vec3(0);
+  vec3 fillColor = vec3(1,0,0);
+
+  col = mix(background, fillColor, mask);
+
+  return col;
+}
+
+vec3 shade(vec2 uv, float sdf) {
+  vec3 col;
+
+  #define DEBUG 0  // 0 off, 1 contour, 2 raw field, 3 quadrant, 4 uv scale, 5 uv domain, 6 origin
+
+  #if DEBUG == 0
+    // col = _shade_inside(sdf);
+    // col = _shade_raw(sdf);
+    // col = _shade_contour(sdf);
+    col = _shade_smoothstep(sdf);
+    // col = _shade_glow(sdf);
+    // col = _shade_outline(sdf);
+  #elif DEBUG == 1
+    col = vec3(fract(sdf*10.0));  // contour bands — is the field smooth? correctly scaled?
+  #elif DEBUG == 2
+    col = vec3(0.5 + 0.5*sdf);  // the raw field
+  #elif DEBUG == 3
+    if (uv.x > 0.0 && uv.y > 0.0) {
+      col = vec3(1.0);
+    } else if (uv.x > 0.0) {
+      col = vec3(0.5);
+    } else if (uv.y > 0.0) {
+      col = vec3(0.5);
+    }
+  #elif DEBUG == 4
+    uv = min(fract(uv*4.0), 1.0-fract(uv*4.0));  // Are my units square?
+    col = vec3(smoothstep(0.02, 0.0, min(uv.x, uv.y)));
+  #elif DEBUG == 5
+    col = vec3(uv, 0.0);  // is my domain what I think it is?
+  #elif DEBUG == 6
+    col = vec3(length(uv));
+  #endif
+
+  return col;
+}
+
+vec2 holeData(int i) {
+  return vec2(-0.5, float(i) * REGION_HEIGHT + (REGION_HEIGHT / 2.0) );
+}
+
+float dFront(vec2 uv) { return sdBox(uv - SHAVE_DEPTH * OBLIQUE_OFFSET, vec2(DC)); }
+float dTop(vec2 uv) {
+  float z = (uv.y - CH) / OBLIQUE_OFFSET.y;
+  float x = uv.x - z * OBLIQUE_OFFSET.x;
+  float d = max(max(SHAVE_DEPTH - z, z - DC) * OBLIQUE_OFFSET.y, (abs(x) - CH) * OBLIQUE_OFFSET.y / length(OBLIQUE_OFFSET));
+  return d;
+}
+float dRight(vec2 uv) {
+  float z = (uv.x - CH) / OBLIQUE_OFFSET.x;
+  float y = uv.y - z * OBLIQUE_OFFSET.y;
+  float d = max(max(SHAVE_DEPTH - z, z - DC) * OBLIQUE_OFFSET.x, (abs(y) - CH) * OBLIQUE_OFFSET.x / length(OBLIQUE_OFFSET));
+  return d;
+}
+
+vec3 cutMat(vec2 xy) {                           // the block's interior material
+    return vec3(0.84, 0.73, 0.57);
+}
+
+// A plane at depth S cuts a sphere in a circle of radius sqrt(R^2 - h^2).
+float openRadius(vec4 c) { float h = c.z - SHAVE_DEPTH; return sqrt(max(c.w * c.w - h * h, 0.0)); }
+vec2 caterpillar(vec2 uv, float t) {              // (distance, index of the nearest segment)
+  vec2 best = vec2(1e3, 0.0);
+  for (int j = 0; j < 4; j++) {
+    vec3 s = seg(j, t);
+    float d = length(uv - (s.xy + ZC * OBLIQUE_OFFSET)) - s.z;
+    if (d < best.x) best = vec2(d, float(j));
+  }
+  return best;
+}
+
+void main() {
+  // Global domain.
+  // uv runs -1.0 to 1.0 across the canvas
+  vec2 RESOLUTION = u_resolution;
+  PX = 2.0 / RESOLUTION.x;
+  HEIGHT = 2.0 * RESOLUTION.y / RESOLUTION.x;
+  REGION_HEIGHT = HEIGHT / 5.0;
+
+  vec2 uv = toDomain(gl_FragCoord.xy);
+  float t = u_time;
+
+  // scene parameters, read by several layers
+  OBLIQUE_OFFSET = vec2(0.30, 0.30);
+  SHAVE_DEPTH  = cutAmount() * SMAX;
+  
+
+  // the cursor, in that same 0.0 to 1.0 space
+  vec2 mouse = (u_mouse * 2.0 - u_resolution.xy) / min(u_resolution.x, u_resolution.y);
+
+  // distance to the cursor, corrected so circles stay round
+  // float aspect = u_resolution.x / u_resolution.y;
+  // float dist = length((uv - mouse) * vec2(aspect, 1.0));
+
+  // a soft blob that follows the cursor and breathes over time
+  //float blob = smoothstep(0.15 + 0.05 * sin(u_time * 2.0), 0.0, dist);
+
+  vec3 col = vec3(0.0);
+
+  // background: x across red, y across green, time pulsing blue
+  // col = vec3(uv, 0.5 + 0.5 * sin(u_time));
+
+  // mix the blob in as white
+  //col = mix(col, vec3(1.0), blob);
+
+  // col = shade(uv, map(uv));
+
+  // // Layer 1 - agar base.
+  // {
+  //   int region = int(
+  //                  clamp(
+  //                        floor(uv.y / REGION_HEIGHT),
+  //                        0.0,
+  //                        4.0
+  //                        )
+  //                  );
+  //   vec3 c = mix(
+  //                vec3(0.0),
+  //                vec3(1.0),
+  //                float(region) / 4.0
+  //                );
+  //   col = c;
+  // }
+
+  // // Layer 2 - holes.
+  // {
+  //   int i = 0;
+  //   float d = 1e3; // Start at "infinity".
+  //   for (int i = 0; i < 5; i++) {
+  //     float di = sdCircle(translate(holeData(i), uv), REGION_HEIGHT / 4.0);
+  //     if (di < d) { d = di; }
+  //   }
+  //   vec3 c = vec3(fill(d));
+  //   col = over(col, c, fill(d));
+  // }
+
+  // background - base
+  {
+    vec3 c = mix(
+                 vec3(0.3),
+                 vec3(0.9),
+                 clamp(0.5 - uv.y / HEIGHT, 0.0, 1.0)
+                 );
+    col = c;
+  }
+
+  // right face - over
+  {
+    float d = dRight(uv);
+    float m = fill(d);
+    vec3 c = vec3(0.20);
+    col = over(col, c, m);
+  }
+
+  // top face - over
+  {
+    float d = dTop(uv);
+    float m = fill(d);
+    vec3 c = vec3(0.10);
+    col = over(col, c, m);
+  }
+
+  float mFront = 0.0;
+  // front face
+  {
+    float d = dFront(uv);
+    float m = fill(d);
+    vec3 skin = vec3(0.26, 0.47, 0.60);
+    float band = smoothstep(-0.035 - PX, -0.035 + PX, d);                   // skin rim on the cut
+    vec3 c = mix(
+                 skin,
+                 mix(cutMat(uv), vec3(0.26), band),
+                 smoothstep(0.0, 0.012, SHAVE_DEPTH)
+                 );
+    mFront = m;
+    col = over(col, c, m);
+  }
+
+  float win0 = 0.0;                                     // kept: the caterpillar's window
+  // cavities - over
+  
+    
+  float ro0  = 0.0;
+  for (int i = 0; i < 5; i++) {
+    vec4  cz = cav(i);
+    float ro = openRadius(cz);
+    if (i == 0) ro0 = ro;
+    if (ro < 0.002) continue;                           // not open yet
+    float d = length(uv - (cz.xy + SHAVE_DEPTH * OBLIQUE_OFFSET)) - ro;        // the opening, on the shaved face
+    float m = fill(d) * mFront;
+    if (i == 0) win0 = m;
+
+    // the back wall: where this pixel's oblique view ray meets the sphere
+    vec2  q  = uv - cz.xy;
+    float A  = dot(OBLIQUE_OFFSET, OBLIQUE_OFFSET) + 1.0;
+    float B  = dot(q, OBLIQUE_OFFSET) + cz.z;
+    float C  = dot(q, q) + cz.z * cz.z - cz.w * cz.w;
+    float zf = (B + sqrt(max(B * B - A * C, 0.0))) / A;
+    vec2  hxy = uv - zf * OBLIQUE_OFFSET;
+    vec3  n   = vec3(-(hxy - cz.xy), zf - cz.z) / cz.w;               // inner normal
+
+    // rim shadow: follow the light ray to the cut plane; lit only if it leaves by the opening
+    float e   = zf - SHAVE_DEPTH;
+    float ts  = e;
+    float sft = 0.012 + 0.035 * ts;
+    float sh  = smoothstep(ro - sft, ro + sft, length(hxy + ts - cz.xy));
+
+    // // the caterpillar's shadow lands on this wall, inside this mask, so it nests here
+    // if (i == 0) {
+    //   vec3 Ld = vec3(LV.xy, -LV.z);
+    //   for (int j = 0; j < 4; j++) {
+    //     vec3  s  = seg(j, t);
+    //     vec3  w  = vec3(s.xy - hxy, ZC - zf);
+    //     float tc = dot(w, Ld);
+    //     if (tc > 0.0) {
+    //       float s2 = 0.01 + 0.06 * tc;
+    //       sh = max(sh, 1.0 - smoothstep(s.z - s2, s.z + s2, length(w - tc * Ld)));
+    //     }
+    //   }
+    // }
+
+    // vec3 c = cutMat(hxy);
+    vec3 c = cutMat(hxy) * (0.16 + 0.84  * (1.0 - sh)) * (0.28 + 0.72 * exp(-2.4 * e));
+    col = over(col, c, m);
+  }
+  
+
+  // caterpillar - over
+  {
+    vec2  dc = caterpillar(uv, t);
+    float d  = dc.x;
+    float m  = fill(d) * win0;
+
+    // the nearest segment's sphere surface, and its normal
+    int   id  = int(dc.y + 0.5);
+
+    vec3  green  = (id == 3) ? vec3(0.62, 0.80, 0.30)
+                 : ((mod(dc.y, 2.0) < 0.5) ? vec3(0.46, 0.74, 0.30) : vec3(0.32, 0.58, 0.25));
+    vec3 c = vec3(green);
+    
+    // eyes: they never leave the head, so they nest inside this layer's color
+    vec3  hd = seg(3, t);
+    vec2  hc = hd.xy + ZC * OBLIQUE_OFFSET;
+    float bl = smoothstep(0.0, 0.025, abs(fract(t * 0.21) - 0.5));        // blink
+    // the gaze, run through the same transform as the pixels
+    vec2  gz = toDomain(gazePixels());
+    for (int k = 0; k < 2; k++) {
+      float sx    = (k == 0) ? -1.0 : 1.0;
+      vec2  E     = hc + vec2(0.034 * sx, 0.020);
+      vec2  er    = vec2(0.025, 0.030 * mix(0.08, 1.0, bl));
+      float me    = fill((length((uv - E) / er) - 1.0) * min(er.x, er.y));
+
+      // The pupil rides from the eye's centre toward the gaze, stopping at the
+      // inside of the eyelid. Each eye aims from its own centre, so the two
+      // converge when the gaze is close and run parallel when it is far.
+      vec2  toGaze = gz - E;
+      float gdist  = length(toGaze);
+      vec2  gdir   = (gdist > 1e-4) ? toGaze / gdist : vec2(0.0);
+      vec2  travel = max(er - 0.013, 0.0);           // eye radius less the pupil radius
+      float reach  = smoothstep(0.0, 0.10, gdist);   // centred when the gaze sits on the eye
+      vec2  pupil  = E + gdir * travel * reach;
+
+      float mp    = fill(length(uv - pupil) - 0.013) * step(0.5, bl);
+      // c = mix(c, mix(vec3(0.97, 0.97, 0.94), vec3(0.05, 0.05, 0.07), mp) * (0.45 + 0.55 * (1.0 - shc)), me);
+      c = mix(c, mix(vec3(0.97, 0.97, 0.94), vec3(0.05, 0.05, 0.07), mp) * (0.45 + 0.55 * (1.0)), me);
+    }
+
+    col = over(col, c, m);
+  }
+
+  // // ---- 8. gaze target · over · state made visible; switch off before shipping --------
+  // {
+  //   vec2  g = (2.0 * gazePixels() - RESOLUTION) / RESOLUTION.x;            // the same transform as the pixels
+  //   vec2  G = g  + 0.5 * DC * OBLIQUE_OFFSET;
+  //   float d = abs(length(uv - G) - 0.045) - 0.006;
+  //   float m = fill(d) * 0.85;
+  //   vec3  c = vec3(1.0, 0.42, 0.42);
+  //   //TAP(8, d, m, c)
+  //   //if (on(8)) col = over(col, c, m);
+  //   col = over(col, c, m);
+  // }
+  
+  // col = vec3(step(0.0, d));       // hard inside/outside
+  gl_FragColor = vec4(col, 1.0);
+}
+</script>
+
+<script>
+(() => {
+  'use strict';
+  const canvas = document.getElementById('c');
+  const note = document.getElementById('note');
+  const fail = t => { note.textContent = t; note.hidden = false; canvas.hidden = true; };
+
+  const OPTS = { antialias: false, powerPreference: 'low-power' };
+  const gl = canvas.getContext('webgl2', OPTS) || canvas.getContext('webgl', OPTS);
+  if (!gl) return fail('This page needs WebGL, which this browser did not provide.');
+
+  const VS = "attribute vec2 p;void main(){gl_Position=vec4(p,0.0,1.0);}";
+  const FS = document.getElementById('fs').textContent;
+
+  function compile(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    return s;
+  }
+
+  let prog;
+  try {
+    prog = gl.createProgram();
+    gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  } catch (e) {
+    // drivers differ, so a shader that built on the desktop can still fail here
+    return fail('This shader did not compile on this device.\n\n' + e.message);
+  }
+
+  gl.useProgram(prog);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const p = gl.getAttribLocation(prog, 'p');
+  gl.enableVertexAttribArray(p);
+  gl.vertexAttribPointer(p, 2, gl.FLOAT, false, 0, 0);
+
+  const at = n => gl.getUniformLocation(prog, n);
+  const uRes = at('u_resolution'), uMouse = at('u_mouse'),
+        uTime = at('u_time'), uFrame = at('u_frame'),
+        uCut  = at('u_cut'),  uGaze  = at('u_gaze');
+
+  // all normalised 0..1, so they survive a resize and start centred
+  const mouse = { x: 0.5, y: 0.5 };
+  const gaze  = { x: 0.5, y: 0.5 };
+  let cut = 0.0;          // 0..1; the shader scales it to SHAVE_DEPTH
+  let dragId = null;      // pointerId of the drag in progress, null when idle
+  let lastX = 0;          // where the dragging pointer was last seen, for the delta
+
+  // The cut is stateful: a drag nudges it from wherever it already is, rather
+  // than jumping to the x you touched. A full-width swipe moves it by this much.
+  const CUT_PER_WIDTH = 1.0;
+
+  // canvas-relative and clamped, y flipped to gl_FragCoord's bottom-left origin
+  function pos(e) {
+    const r = canvas.getBoundingClientRect();
+    const clamp = v => (v < 0 ? 0 : v > 1 ? 1 : v);
+    return { x: clamp((e.clientX - r.left) / r.width),
+             y: clamp(1 - (e.clientY - r.top) / r.height) };
+  }
+
+  canvas.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    dragId = e.pointerId;
+    // capture, so a drag that wanders off the canvas keeps being tracked
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* pointer already gone */ }
+    const p = pos(e);
+    mouse.x = gaze.x = p.x;
+    mouse.y = gaze.y = p.y;
+    lastX = p.x;          // only anchor the drag; pressing must not move the cut
+  });
+
+  canvas.addEventListener('pointermove', e => {
+    const p = pos(e);
+    mouse.x = p.x; mouse.y = p.y;
+    // A touch screen fires pointermove only while pressed, so this single line
+    // gives hover-following on a desktop and press-and-drag on a phone, with no
+    // device sniffing.
+    gaze.x = p.x; gaze.y = p.y;
+    if (e.pointerId === dragId) {            // only the pointer that began the drag
+      cut += (p.x - lastX) * CUT_PER_WIDTH;  // left and right scrub the shave
+      cut = cut < 0 ? 0 : cut > 1 ? 1 : cut;
+      lastX = p.x;                           // re-anchor, so a reversal bites at once
+    }
+  });
+
+  // Deliberately no spring back: the cut keeps whatever value it was released at.
+  const endDrag = e => { if (e.pointerId === dragId) dragId = null; };
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+
+  let t = 0, frame = 0, last = performance.now();
+
+  function draw(now) {
+    requestAnimationFrame(draw);
+    const dt = Math.min((now - last) / 1000, 0.1);   // clamp, so a stall does not jump time
+    last = now;
+    if (document.hidden) return;                     // do not burn a phone battery
+    t += dt; frame += 1;
+
+    // cap the pixel ratio: a fullscreen fragment shader at native retina is
+    // four times the pixels, enough to stall a heavy shader on a phone
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(1, Math.floor(canvas.clientWidth * dpr));
+    const h = Math.max(1, Math.floor(canvas.clientHeight * dpr));
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+
+    gl.viewport(0, 0, w, h);
+    gl.uniform2f(uRes, w, h);
+    gl.uniform2f(uMouse, mouse.x * w, mouse.y * h);
+    gl.uniform2f(uGaze, gaze.x * w, gaze.y * h);
+    gl.uniform1f(uCut, cut);
+    gl.uniform1f(uTime, t);
+    gl.uniform1f(uFrame, frame);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+  requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>
